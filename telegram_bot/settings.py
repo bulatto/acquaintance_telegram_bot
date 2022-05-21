@@ -26,6 +26,12 @@ if not CONFIG_FILE_PATH.exists():
     raise ImproperlyConfigured(
         f'Конфигурационный файл "{CONFING_FILE_NAME}" не существует')
 
+# Папка, где будут храниться все файлы
+MEDIA_DIR = CONFIG_PATH.joinpath('media/')
+if not MEDIA_DIR.exists():
+    MEDIA_DIR.mkdir(parents=True)
+
+
 CONF_FILES = [
     CONFIG_FILE_PATH,
 ]
@@ -74,3 +80,8 @@ TORTOISE_ORM = {
         },
     },
 }
+
+# Никнеймы телеграм пользователей, у которых будут больше действий с ботом
+# Перечислять через ;
+ADMINS_USERNAMES = telegram_bot_section.get(
+    'ADMINS_USERNAMES').strip().split(';')
