@@ -1,0 +1,4 @@
+aiogram==2.20
+aiogram-dialog==1.4.1
+tortoise-orm[asyncpg]==0.19.1
+aerich==0.6.3
