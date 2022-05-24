@@ -50,6 +50,10 @@ class ConstantMessages:
         'Изображение должно быть отправлено в виде фотографии, а не документа')
     PERSON_INFORMATION_NOT_EXISTS = 'Не указан текст анкеты'
     IMAGE_PROCESSING_ERROR = 'При обработке изображения произошла ошибка'
+    CHANNEL_URL_NOT_FOUND = (
+        'Не задан URL для канала (куда пересылаются сообщения)')
+    BOT_NOT_AUTHORIZED_IN_CHANNEL = (
+        'Бот должен состоять в канале, куда пересылются анкеты и истории')
 
 
 class ButtonNames:
@@ -57,3 +61,24 @@ class ButtonNames:
     SEND_INFORMATION_FORM = 'Отправить анкету'
     SEND_STORY = 'Отправить интересную историю'
     RETURN = 'Вернуться'
+
+
+class AdminButtonNames:
+    """Названия админских кнопок"""
+
+    ADMIN_COUNT_SETTING = 5
+
+    GET_STORIES = f'Получить {ADMIN_COUNT_SETTING} историй'
+    GET_INFORMATION_FORMS = f'Получить {ADMIN_COUNT_SETTING} анкет'
+
+    APPROVE_STORY = 'Подтвердить историю'
+    APPROVE_STORY_CODE = 'approve_story'
+    STORIES_IS_EMPTY = 'Список историй пуст'
+
+    APPROVE_PERSON_INFO = 'Подтвердить анкету'
+    APPROVE_PERSON_INFO_CODE = 'approve_user_story'
+    PERSON_INFOS_IS_EMPTY = 'Список анкет пуст'
+
+    ADMIN_KEYS = (
+        GET_STORIES, GET_INFORMATION_FORMS
+    )

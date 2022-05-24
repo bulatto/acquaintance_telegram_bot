@@ -85,3 +85,7 @@ TORTOISE_ORM = {
 # Перечислять через ;
 ADMINS_USERNAMES = telegram_bot_section.get(
     'ADMINS_USERNAMES').strip().split(';')
+
+# Логин телеграм канала, куда будут пересылаться анкеты и истории.
+# В формате @login. Бот обязательно должен состоять в том канале
+CHANNEL_USERNAME = telegram_bot_section.get('CHANNEL_USERNAME')

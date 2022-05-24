@@ -6,3 +6,8 @@ class ProjectStates(StatesGroup):
     send_information_form = State()
     # Отправка истории
     send_story = State()
+
+    # Получений анкет
+    get_information_forms = State()
+    # Получений историй
+    get_stories = State()
