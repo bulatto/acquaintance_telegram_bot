@@ -4,6 +4,11 @@ from aiogram.dispatcher.filters import BoundFilter
 from telegram_bot.settings import ADMINS_USERNAMES
 
 
+def is_admin_message(message):
+    username = message.from_user.username
+    return bool(username and username in ADMINS_USERNAMES)
+
+
 class AdminFilter(BoundFilter):
     """Фильтр, что пользователь является администратором бота"""
     key = 'is_admin'
@@ -12,5 +17,4 @@ class AdminFilter(BoundFilter):
         self.is_admin = is_admin
 
     async def check(self, message: types.Message):
-        username = message.from_user.username
-        return bool(username and username in ADMINS_USERNAMES)
+        return is_admin_message(message)
