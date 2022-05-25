@@ -3,7 +3,7 @@ import logging
 
 from aiogram import Bot
 from aiogram import types
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.contrib.fsm_storage.redis import RedisStorage2
 from aiogram.dispatcher import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
@@ -25,25 +25,30 @@ from telegram_bot.keyboards import RETURN_KEYBOARD
 from telegram_bot.keyboards import get_actions_kb_params
 from telegram_bot.models import PersonInformation
 from telegram_bot.models import Story
-from telegram_bot.settings import CHANNEL_USERNAME
+from telegram_bot.settings import CHANNEL_USERNAME, REDIS_STORAGE_PARAMS
 from telegram_bot.settings import TOKEN
 from telegram_bot.states import ProjectStates
 
+
 bot = Bot(token=TOKEN)
-# TODO: заменить на Redis
-dp = Dispatcher(bot, storage=MemoryStorage())
+dp = Dispatcher(bot, storage=RedisStorage2(**REDIS_STORAGE_PARAMS))
 dp.filters_factory.bind(AdminFilter)
 runner = Executor(dp)
 # Включаем логирование, чтобы не пропустить важные сообщения
 logging.basicConfig(level=logging.INFO)
 
 
-async def cancel_action(message, state=None):
-    """Отмена действий."""
+async def answer_with_actions_keyboard(message, text):
+    """Обычный ответ на сообщение с выдачей клавиатуры действий"""
     await message.answer(
-        Messages.CHOOSE_ACTION,
+        text,
         **get_actions_kb_params(is_admin_message(message))
     )
+
+
+async def cancel_action(message, state=None):
+    """Отмена действий и вывод обычной клавиатуры с действиями."""
+    await answer_with_actions_keyboard(message, Messages.CHOOSE_ACTION)
     if state:
         await state.finish()
 
@@ -52,10 +57,7 @@ async def cancel_action(message, state=None):
 async def process_start_command(message: types.Message):
     """Выдает стартовое сообщение."""
     await message.answer(Messages.START)
-    await message.answer(
-        Messages.CHOOSE_ACTION,
-        **get_actions_kb_params(is_admin_message(message))
-    )
+    await answer_with_actions_keyboard(message, Messages.CHOOSE_ACTION)
 
 
 @dp.message_handler(Text(ButtonNames.SEND_INFORMATION_FORM))
@@ -66,7 +68,9 @@ async def send_information_form(message: types.Message):
     await ProjectStates.send_information_form.set()
 
 
-@dp.message_handler(state=ProjectStates.send_information_form, #todo может сделать всплывающую форму с разными полями (?) как у бота @DurgerKingBot
+# TODO: может сделать всплывающую форму с разными полями (?)
+#  как у бота @BurgerKingBot
+@dp.message_handler(state=ProjectStates.send_information_form,
                     content_types=[ContentType.ANY])
 async def send_information_form_saving(
         message: types.Message, state: FSMContext):
@@ -105,9 +109,8 @@ async def send_information_form_saving(
         text=message.text or message.caption or '',
         **image_params
     )
-    await message.answer(
-        Messages.INFORMATION_FORM_PROCESSED,
-        **get_actions_kb_params(is_admin_message(message)))
+    await answer_with_actions_keyboard(
+        message, Messages.INFORMATION_FORM_PROCESSED)
     await state.finish()
 
 
@@ -127,19 +130,14 @@ async def story_saving(
         return
 
     await Story.create(text=message.text)
-    await message.answer(
-        Messages.STORY_PROCESSED,
-        **get_actions_kb_params(is_admin_message(message)))
+
+    await answer_with_actions_keyboard(message, Messages.STORY_PROCESSED)
     await state.finish()
 
 
 @dp.message_handler(Text(AdminButtonNames.GET_STORIES), is_admin=True)
 async def get_user_stories(message: types.Message, state: FSMContext):
     """Получение админом историй."""
-
-    if message.text == ButtonNames.RETURN:
-        await cancel_action(message, state)
-        return
 
     user_stories = await Story.filter(
         is_published=False
@@ -211,22 +209,26 @@ async def get_user_info_forms(message: types.Message, state: FSMContext):
     lambda c: AdminButtonNames.APPROVE_PERSON_INFO_CODE in c.data)
 async def process_person_info_approve(callback_query: types.CallbackQuery):
     """Авто-пересылка анкеты в канал"""
-    if CHANNEL_USERNAME:
-        try:
-            await bot.send_photo(
-                CHANNEL_USERNAME,
-                callback_query.message.photo[-1].file_id,
-                caption=callback_query.message.html_text
-            )
-        except exceptions.Unauthorized:
-            await callback_query.message.answer(
-                Messages.BOT_NOT_AUTHORIZED_IN_CHANNEL)
-        finally:  # Помечаем историю как отправленную
-            person_info_id = int(callback_query.data.split('_')[-1])
-            await PersonInformation.filter(
-                id=person_info_id).update(is_published=True)
-    else:
+    if not CHANNEL_USERNAME:
         await callback_query.message.answer(Messages.CHANNEL_URL_NOT_FOUND)
+        return
+
+    try:
+        # TODO: возможно тут не всегда будет фото
+        # TODO: добавить логирование и обработку ошибок Exception
+        await bot.send_photo(
+            CHANNEL_USERNAME,
+            callback_query.message.photo[-1].file_id,
+            caption=callback_query.message.html_text
+        )
+    except exceptions.Unauthorized:
+        await callback_query.message.answer(
+            Messages.BOT_NOT_AUTHORIZED_IN_CHANNEL)
+    finally:
+        # Помечаем историю как отправленную
+        person_info_id = int(callback_query.data.split('_')[-1])
+        await PersonInformation.filter(
+            id=person_info_id).update(is_published=True)
 
 
 @dp.message_handler(content_types=[ContentType.ANY])

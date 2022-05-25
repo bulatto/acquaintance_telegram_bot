@@ -36,25 +36,29 @@ CONF_FILES = [
     CONFIG_FILE_PATH,
 ]
 
-# Секция с данными базы
-DB_SECTION_NAME = 'database'
-
-
 # Конфигурация проекта
 conf = ConfigParser()
 conf.read(CONF_FILES)
 
-# Название секции в настройках
-TELEGRAM_BOT_SECTION = 'telegram_bot'
 
-telegram_bot_section = conf[TELEGRAM_BOT_SECTION]
-DB_SECTION = conf[DB_SECTION_NAME]
+class Sections:
+    """Названия секций"""
+    DB = 'database'
+    TELEGRAM_BOT = 'telegram_bot'
+    REDIS = 'redis'
+
+
+# Секции из настроек
+TELEGRAM_BOT_SECTION = conf[Sections.TELEGRAM_BOT]
+DB_SECTION = conf[Sections.DB]
+REDIS_SECTION = conf[Sections.REDIS]
+
 
 # Токен телеграм бота
-TOKEN = telegram_bot_section.get('TOKEN')
+TOKEN = TELEGRAM_BOT_SECTION.get('TOKEN')
 if not TOKEN:
     raise ImproperlyConfigured(
-        f'Не задан токен телеграмма ([{TELEGRAM_BOT_SECTION}] TOKEN)')
+        f'Не задан токен телеграмма ([{Sections.TELEGRAM_BOT}] TOKEN)')
 
 
 # Разрешение изображения из telegram
@@ -70,6 +74,24 @@ DB_PASSWORD = DB_SECTION.get('PASSWORD', fallback='password')
 POSTGRES_URI = (
     f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 
+# Параметры redis
+REDIS_HOST = REDIS_SECTION.get('HOST', fallback='127.0.0.1')
+REDIS_PORT = REDIS_SECTION.getint('PORT', fallback=6379)
+REDIS_DB = REDIS_SECTION.getint('DB')
+REDIS_PASSWORD = REDIS_SECTION['PASSWORD']
+REDIS_STORAGE_PREFIX = REDIS_SECTION.get(
+    'PASSWORD', fallback='acquaintance')
+
+
+# Параметры redis для хранения состояния
+REDIS_STORAGE_PARAMS = dict(
+    host=REDIS_HOST,
+    port=REDIS_PORT,
+    db=REDIS_DB,
+    password=REDIS_PASSWORD,
+    prefix=REDIS_STORAGE_PREFIX,
+)
+
 
 TORTOISE_ORM = {
     "connections": {"default": POSTGRES_URI},
@@ -83,9 +105,9 @@ TORTOISE_ORM = {
 
 # Никнеймы телеграм пользователей, у которых будут больше действий с ботом
 # Перечислять через ;
-ADMINS_USERNAMES = telegram_bot_section.get(
+ADMINS_USERNAMES = TELEGRAM_BOT_SECTION.get(
     'ADMINS_USERNAMES').strip().split(';')
 
 # Логин телеграм канала, куда будут пересылаться анкеты и истории.
 # В формате @login. Бот обязательно должен состоять в том канале
-CHANNEL_USERNAME = telegram_bot_section.get('CHANNEL_USERNAME')
+CHANNEL_USERNAME = TELEGRAM_BOT_SECTION.get('CHANNEL_USERNAME')
