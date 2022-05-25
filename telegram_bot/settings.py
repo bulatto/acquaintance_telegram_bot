@@ -2,6 +2,7 @@ import os
 from configparser import ConfigParser
 from pathlib import Path
 
+from telegram_bot.constants import Messages
 from telegram_bot.exceptions import ImproperlyConfigured
 
 
@@ -111,3 +112,5 @@ ADMINS_USERNAMES = TELEGRAM_BOT_SECTION.get(
 # Логин телеграм канала, куда будут пересылаться анкеты и истории.
 # В формате @login. Бот обязательно должен состоять в том канале
 CHANNEL_USERNAME = TELEGRAM_BOT_SECTION.get('CHANNEL_USERNAME')
+if not CHANNEL_USERNAME:
+    raise ImproperlyConfigured(Messages.CHANNEL_USERNAME_NOT_FOUND)

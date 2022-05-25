@@ -4,8 +4,8 @@ USERNAME_FIELD = 'username'
 MAX_TELEGRAM_MESSAGE_LENGTH = 4096
 
 
-class ConstantMessages:
-    """Класс для хранения сообщений."""
+class Messages:
+    """Класс для хранения сообщений, которые используются в проекте."""
 
     # Стартовое сообщение
     START = (
@@ -50,10 +50,21 @@ class ConstantMessages:
         'Изображение должно быть отправлено в виде фотографии, а не документа')
     PERSON_INFORMATION_NOT_EXISTS = 'Не указан текст анкеты'
     IMAGE_PROCESSING_ERROR = 'При обработке изображения произошла ошибка'
-    CHANNEL_URL_NOT_FOUND = (
-        'Не задан URL для канала (куда пересылаются сообщения)')
+    CHANNEL_USERNAME_NOT_FOUND = (
+        'Не задан идентификатор telegram канала, '
+        'куда будут пересылаться сообщения'
+    )
     BOT_NOT_AUTHORIZED_IN_CHANNEL = (
         'Бот должен состоять в канале, куда пересылются анкеты и истории')
+
+    STORY_PUBLISHED_SUCCESSFULLY = 'История успешно опубликована'
+    INFO_PUBLISHED_SUCCESSFULLY = 'Анкета успешно опубликована'
+
+    STORY_ALREADY_PUBLISHED = 'История уже была опубликована'
+    INFO_ALREADY_PUBLISHED = 'Анкета уже была опубликована'
+
+    STORY_NOT_FOUNDED = 'История не найдена в базе данных'
+    INFO_NOT_FOUNDED = 'Анкета не найдена в базе данных'
 
 
 class ButtonNames:

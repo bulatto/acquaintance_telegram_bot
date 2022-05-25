@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import traceback
 
 from aiogram import Bot
 from aiogram import types
@@ -14,13 +15,14 @@ from aiogram.utils import exceptions
 from aiogram.utils.executor import Executor
 from telegram_bot.constants import AdminButtonNames
 from telegram_bot.constants import ButtonNames
-from telegram_bot.constants import ConstantMessages as Messages
+from telegram_bot.constants import Messages
 from telegram_bot.db import setup_db
+from telegram_bot.exceptions import ApplicationLogicException
 from telegram_bot.filters import AdminFilter
 from telegram_bot.filters import is_admin_message
-from telegram_bot.helpers import generate_file_name
-from telegram_bot.helpers import get_absolute_media_path
-from telegram_bot.helpers import get_upload_file_path
+from telegram_bot.helpers import create_person_info_from_message, \
+    get_story_callback_data, get_person_info_callback_data, \
+    get_obj_id_from_callback_data
 from telegram_bot.keyboards import RETURN_KEYBOARD
 from telegram_bot.keyboards import get_actions_kb_params
 from telegram_bot.models import PersonInformation
@@ -79,31 +81,8 @@ async def send_information_form_saving(
         await cancel_action(message, state)
         return
 
-    # Проверка на наличие документа
-    if message.document:
-        await message.answer(Messages.NEED_IMAGE_AS_PHOTO)
-        return
+    await create_person_info_from_message(message)
 
-    if not message.text and not message.caption:
-        await message.answer(Messages.PERSON_INFORMATION_NOT_EXISTS)
-        return
-
-    if message.photo:
-        try:
-            photo = message.photo[-1]
-            image_params = dict(
-                image_file_id=photo.file_id,
-            )
-        except Exception:
-            await message.answer(Messages.IMAGE_PROCESSING_ERROR)
-            return
-    else:
-        image_params = {}
-
-    await PersonInformation.create(
-        text=message.text or message.caption or '',
-        **image_params
-    )
     await answer_with_actions_keyboard(
         message, Messages.INFORMATION_FORM_PROCESSED)
     await state.finish()
@@ -138,14 +117,14 @@ async def get_user_stories(message: types.Message, state: FSMContext):
         is_published=False
     ).limit(AdminButtonNames.ADMIN_COUNT_SETTING)
 
-    if len(user_stories) == 0:
-        await message.answer(AdminButtonNames.STORIES_IS_EMPTY)
+    if not user_stories:
+        raise ApplicationLogicException(AdminButtonNames.STORIES_IS_EMPTY)
 
     for story in user_stories:
         story_keyboard = InlineKeyboardMarkup().add(
             InlineKeyboardButton(
                 AdminButtonNames.APPROVE_STORY,
-                callback_data=f'{AdminButtonNames.APPROVE_STORY_CODE}_{story.id}'
+                callback_data=get_story_callback_data(story.id)
             )
         )
         await message.answer(story.text, reply_markup=story_keyboard)
@@ -155,18 +134,25 @@ async def get_user_stories(message: types.Message, state: FSMContext):
     lambda c: AdminButtonNames.APPROVE_STORY_CODE in c.data)
 async def process_story_approve(callback_query: types.CallbackQuery):
     """Авто-пересылка истории в канал"""
-    if CHANNEL_USERNAME:
-        try:
-            await bot.send_message(
-                CHANNEL_USERNAME, callback_query.message.text)
-        except exceptions.Unauthorized:
-            await callback_query.message.answer(
-                Messages.BOT_NOT_AUTHORIZED_IN_CHANNEL)
-        finally:  # Помечаем историю как отправленную
-            story_id = int(callback_query.data.split('_')[-1])
-            await Story.filter(id=story_id).update(is_published=True)
-    else:
-        await callback_query.message.answer(Messages.CHANNEL_URL_NOT_FOUND)
+
+    message = callback_query.message
+    story_id = get_obj_id_from_callback_data(callback_query.data)
+    story = await Story.filter(id=story_id).first()
+    if not story:
+        raise ApplicationLogicException(Messages.STORY_NOT_FOUNDED)
+    if story.is_published:
+        raise ApplicationLogicException(Messages.STORY_ALREADY_PUBLISHED)
+
+    try:
+        await bot.send_message(CHANNEL_USERNAME, message.text)
+    except exceptions.Unauthorized:
+        raise ApplicationLogicException(Messages.BOT_NOT_AUTHORIZED_IN_CHANNEL)
+
+    # Помечаем историю как отправленную
+    story.is_published = True
+    await story.save()
+
+    await message.answer(Messages.STORY_PUBLISHED_SUCCESSFULLY)
 
 
 @dp.message_handler(Text(
@@ -174,62 +160,90 @@ async def process_story_approve(callback_query: types.CallbackQuery):
 async def get_user_info_forms(message: types.Message, state: FSMContext):
     """Получение админом анкет."""
 
-    if message.text == ButtonNames.RETURN:
-        await cancel_action(message, state)
-        return
-
     persons_information = await PersonInformation.filter(
         is_published=False
     ).limit(AdminButtonNames.ADMIN_COUNT_SETTING)
 
-    if len(persons_information) == 0:
-        await message.answer(AdminButtonNames.PERSON_INFOS_IS_EMPTY)
+    if not persons_information:
+        raise ApplicationLogicException(AdminButtonNames.PERSON_INFOS_IS_EMPTY)
 
     for person_info in persons_information:
         story_keyboard = InlineKeyboardMarkup().add(
             InlineKeyboardButton(
                 AdminButtonNames.APPROVE_PERSON_INFO,
-                callback_data=(
-                    f'{AdminButtonNames.APPROVE_PERSON_INFO_CODE}_'
-                    f'{person_info.id}'
-                )
+                callback_data=get_person_info_callback_data(person_info.id)
             )
         )
-        await message.answer_photo(
-            person_info.image_file_id, person_info.text,
-            reply_markup=story_keyboard)
+        if person_info.image_file_id:
+            await message.answer_photo(
+                person_info.image_file_id, person_info.text,
+                reply_markup=story_keyboard)
+        else:
+            await message.answer(person_info.text, reply_markup=story_keyboard)
 
 
 @dp.callback_query_handler(
     lambda c: AdminButtonNames.APPROVE_PERSON_INFO_CODE in c.data)
 async def process_person_info_approve(callback_query: types.CallbackQuery):
     """Авто-пересылка анкеты в канал"""
-    if not CHANNEL_USERNAME:
-        await callback_query.message.answer(Messages.CHANNEL_URL_NOT_FOUND)
-        return
+
+    message = callback_query.message
+    # Проверка, что запись уже отправлялась ранее
+    person_info_id = get_obj_id_from_callback_data(callback_query.data)
+    person_info = await PersonInformation.filter(id=person_info_id).first()
+    if not person_info:
+        raise ApplicationLogicException(Messages.INFO_NOT_FOUNDED)
+    if person_info.is_published:
+        raise ApplicationLogicException(Messages.INFO_ALREADY_PUBLISHED)
 
     try:
-        # TODO: возможно тут не всегда будет фото
-        # TODO: добавить логирование и обработку ошибок Exception
-        await bot.send_photo(
-            CHANNEL_USERNAME,
-            callback_query.message.photo[-1].file_id,
-            caption=callback_query.message.html_text
-        )
+        if message.photo:
+            await bot.send_photo(
+                CHANNEL_USERNAME,
+                message.photo[-1].file_id,
+                caption=message.html_text
+            )
+        else:
+            await bot.send_message(
+                CHANNEL_USERNAME,
+                message.html_text
+            )
     except exceptions.Unauthorized:
-        await callback_query.message.answer(
-            Messages.BOT_NOT_AUTHORIZED_IN_CHANNEL)
-    finally:
-        # Помечаем историю как отправленную
-        person_info_id = int(callback_query.data.split('_')[-1])
-        await PersonInformation.filter(
-            id=person_info_id).update(is_published=True)
+        raise ApplicationLogicException(Messages.BOT_NOT_AUTHORIZED_IN_CHANNEL)
+
+    # Помечаем историю как отправленную
+    person_info.is_published = True
+    await person_info.save()
+
+    await message.answer(Messages.INFO_PUBLISHED_SUCCESSFULLY)
 
 
 @dp.message_handler(content_types=[ContentType.ANY])
 async def unknown_message_handler(message: types.Message):
     """Обработчик неизвестных сообщений."""
     await message.answer(Messages.UNKNOWN_MESSAGE)
+
+
+@dp.errors_handler(exception=Exception)
+async def message_not_modified_handler(update, error):
+    """Обработка ошибок.
+
+    В случае ApplicationLogicException, просто выводится сообщение из текста
+    ошибки.
+    В случае другой ошибки, выводится сообщение о непредвиденной ошибке,
+    очищается контекст, и происходит выход на главный экран.
+    """
+    message = update.message or update.callback_query.message
+    if isinstance(error, ApplicationLogicException):
+        await message.answer(str(error))
+    else:
+        await answer_with_actions_keyboard(message, Messages.ERROR)
+        state = dp.current_state()
+        await state.finish()
+        # TODO: добавить логирование
+        traceback.print_exc()
+
+    return True
 
 
 if __name__ == '__main__':
