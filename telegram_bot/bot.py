@@ -3,7 +3,7 @@ import logging
 
 from aiogram import Bot
 from aiogram import types
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.contrib.fsm_storage.redis import RedisStorage2
 from aiogram.dispatcher import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
@@ -25,13 +25,13 @@ from telegram_bot.keyboards import RETURN_KEYBOARD
 from telegram_bot.keyboards import get_actions_kb_params
 from telegram_bot.models import PersonInformation
 from telegram_bot.models import Story
-from telegram_bot.settings import CHANNEL_USERNAME
+from telegram_bot.settings import CHANNEL_USERNAME, REDIS_STORAGE_PARAMS
 from telegram_bot.settings import TOKEN
 from telegram_bot.states import ProjectStates
 
+
 bot = Bot(token=TOKEN)
-# TODO: заменить на Redis
-dp = Dispatcher(bot, storage=MemoryStorage())
+dp = Dispatcher(bot, storage=RedisStorage2(**REDIS_STORAGE_PARAMS))
 dp.filters_factory.bind(AdminFilter)
 runner = Executor(dp)
 # Включаем логирование, чтобы не пропустить важные сообщения
@@ -215,6 +215,7 @@ async def process_person_info_approve(callback_query: types.CallbackQuery):
 
     try:
         # TODO: возможно тут не всегда будет фото
+        # TODO: добавить логирование и обработку ошибок Exception
         await bot.send_photo(
             CHANNEL_USERNAME,
             callback_query.message.photo[-1].file_id,
