@@ -91,13 +91,8 @@ async def send_information_form_saving(
     if message.photo:
         try:
             photo = message.photo[-1]
-            rel_image_path = get_upload_file_path(
-                generate_file_name('jpg'), 'images')
-            await photo.download(
-                destination_file=get_absolute_media_path(rel_image_path))
             image_params = dict(
                 image_file_id=photo.file_id,
-                image_path=rel_image_path
             )
         except Exception:
             await message.answer(Messages.IMAGE_PROCESSING_ERROR)
