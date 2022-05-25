@@ -51,16 +51,6 @@ class PersonInformation(DateAwareModel):
     text = fields.CharField(max_length=MAX_TELEGRAM_MESSAGE_LENGTH)
     # id изображения в системе телеграма (нужно, чтобы быстрее пересылать файл,
     # потому что не надо загружать его на сервера Telegram - он уже там)
-    image_file_id = fields.CharField(max_length=200)
-    image_path = fields.CharField(max_length=200)
+    image_file_id = fields.CharField(default='', max_length=200)
     # Опубликована ли анкета
     is_published = fields.BooleanField(default=False)
-
-
-class PersonInformationView(CreatedDateModel):
-    """Модель для хранения просмотров историй"""
-    id = fields.IntField(pk=True)
-    story = fields.ForeignKeyField(
-        'models.PersonInformation', related_name='information_views')
-    # Никнейм телеграм человека, который получил историю
-    telegram_nickname = fields.CharField(max_length=100)
