@@ -80,7 +80,7 @@ REDIS_PORT = REDIS_SECTION.getint('PORT', fallback=6379)
 REDIS_DB = REDIS_SECTION.getint('DB')
 REDIS_PASSWORD = REDIS_SECTION.get('PASSWORD')
 REDIS_STORAGE_PREFIX = REDIS_SECTION.get(
-    'PASSWORD', fallback='acquaintance')
+    'STORAGE_PREFIX', fallback='acquaintance')
 
 
 # Параметры redis для хранения состояния
