@@ -2,7 +2,6 @@ import os
 from configparser import ConfigParser
 from pathlib import Path
 
-from telegram_bot.constants import Messages
 from telegram_bot.exceptions import ImproperlyConfigured
 
 
@@ -113,4 +112,14 @@ ADMINS_USERNAMES = TELEGRAM_BOT_SECTION.get(
 # В формате @login. Бот обязательно должен состоять в том канале
 CHANNEL_USERNAME = TELEGRAM_BOT_SECTION.get('CHANNEL_USERNAME')
 if not CHANNEL_USERNAME:
-    raise ImproperlyConfigured(Messages.CHANNEL_USERNAME_NOT_FOUND)
+    raise ImproperlyConfigured(
+        'Не задан идентификатор telegram канала, '
+        'куда будут пересылаться сообщения'
+    )
+
+# Количество историй/анкет, которые сможет одновременно получить администратор
+ADMIN_OBJS_COUNT_SETTING = TELEGRAM_BOT_SECTION.getint(
+    'ADMIN_OBJS_COUNT_SETTING', fallback=5)
+if ADMIN_OBJS_COUNT_SETTING < 1:
+    raise ImproperlyConfigured(
+        'ADMIN_OBJS_COUNT_SETTING должен быть больше и равно 1')
