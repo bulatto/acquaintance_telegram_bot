@@ -22,7 +22,8 @@ from telegram_bot.filters import AdminFilter
 from telegram_bot.filters import is_admin_message
 from telegram_bot.helpers import create_person_info_from_message, \
     get_story_callback_data, get_person_info_callback_data, \
-    get_obj_id_from_callback_data
+    get_obj_id_from_callback_data, send_message_to_channel, \
+    StoryToChannelResender, PersonInfoToChannelResender
 from telegram_bot.keyboards import RETURN_KEYBOARD
 from telegram_bot.keyboards import get_actions_kb_params
 from telegram_bot.models import PersonInformation
@@ -46,6 +47,14 @@ async def answer_with_actions_keyboard(message, text):
         text,
         **get_actions_kb_params(is_admin_message(message))
     )
+
+
+async def answer(message, text, photo_file_id=None, **kwargs):
+    """Ответ на сообщение с текстом/изображением и доп.параметрами"""
+    if photo_file_id:
+        await message.answer_photo(photo_file_id, text, **kwargs)
+    else:
+        await message.answer(text, **kwargs)
 
 
 async def cancel_action(message, state=None):
@@ -134,25 +143,8 @@ async def get_user_stories(message: types.Message, state: FSMContext):
     lambda c: AdminButtonNames.APPROVE_STORY_CODE in c.data)
 async def process_story_approve(callback_query: types.CallbackQuery):
     """Авто-пересылка истории в канал"""
-
-    message = callback_query.message
     story_id = get_obj_id_from_callback_data(callback_query.data)
-    story = await Story.filter(id=story_id).first()
-    if not story:
-        raise ApplicationLogicException(Messages.STORY_NOT_FOUNDED)
-    if story.is_published:
-        raise ApplicationLogicException(Messages.STORY_ALREADY_PUBLISHED)
-
-    try:
-        await bot.send_message(CHANNEL_USERNAME, message.text)
-    except exceptions.Unauthorized:
-        raise ApplicationLogicException(Messages.BOT_NOT_AUTHORIZED_IN_CHANNEL)
-
-    # Помечаем историю как отправленную
-    story.is_published = True
-    await story.save()
-
-    await message.answer(Messages.STORY_PUBLISHED_SUCCESSFULLY)
+    await StoryToChannelResender(story_id, callback_query.message).send()
 
 
 @dp.message_handler(Text(
@@ -174,48 +166,19 @@ async def get_user_info_forms(message: types.Message, state: FSMContext):
                 callback_data=get_person_info_callback_data(person_info.id)
             )
         )
-        if person_info.image_file_id:
-            await message.answer_photo(
-                person_info.image_file_id, person_info.text,
-                reply_markup=story_keyboard)
-        else:
-            await message.answer(person_info.text, reply_markup=story_keyboard)
+        await answer(
+            message, person_info.text, person_info.image_file_id,
+            reply_markup=story_keyboard
+        )
 
 
 @dp.callback_query_handler(
     lambda c: AdminButtonNames.APPROVE_PERSON_INFO_CODE in c.data)
 async def process_person_info_approve(callback_query: types.CallbackQuery):
     """Авто-пересылка анкеты в канал"""
-
-    message = callback_query.message
-    # Проверка, что запись уже отправлялась ранее
     person_info_id = get_obj_id_from_callback_data(callback_query.data)
-    person_info = await PersonInformation.filter(id=person_info_id).first()
-    if not person_info:
-        raise ApplicationLogicException(Messages.INFO_NOT_FOUNDED)
-    if person_info.is_published:
-        raise ApplicationLogicException(Messages.INFO_ALREADY_PUBLISHED)
-
-    try:
-        if message.photo:
-            await bot.send_photo(
-                CHANNEL_USERNAME,
-                message.photo[-1].file_id,
-                caption=message.html_text
-            )
-        else:
-            await bot.send_message(
-                CHANNEL_USERNAME,
-                message.html_text
-            )
-    except exceptions.Unauthorized:
-        raise ApplicationLogicException(Messages.BOT_NOT_AUTHORIZED_IN_CHANNEL)
-
-    # Помечаем историю как отправленную
-    person_info.is_published = True
-    await person_info.save()
-
-    await message.answer(Messages.INFO_PUBLISHED_SUCCESSFULLY)
+    await PersonInfoToChannelResender(
+        person_info_id, callback_query.message).send()
 
 
 @dp.message_handler(content_types=[ContentType.ANY])
