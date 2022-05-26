@@ -2,14 +2,16 @@ import os
 import uuid
 from datetime import date
 from functools import partial
+from typing import Optional
 
 from aiogram.types import PhotoSize
+from aiogram.utils import exceptions as aiogram_exceptions
 
 from telegram_bot.constants import AdminButtonNames, Messages
 from telegram_bot.exceptions import ImageProcessingException, \
     ApplicationLogicException
-from telegram_bot.models import PersonInformation
-from telegram_bot.settings import MEDIA_DIR
+from telegram_bot.models import PersonInformation, Story
+from telegram_bot.settings import MEDIA_DIR, CHANNEL_USERNAME
 
 
 def generate_file_name(suffix):
@@ -118,3 +120,87 @@ async def create_person_info_from_message(message):
 
     person_info = await PersonInformation.create(text=text, **image_params)
     return person_info
+
+
+async def send_message_to_channel(
+        text: str,
+        photo_file_id: Optional[str] = None,
+        channel_username: str = CHANNEL_USERNAME
+):
+    """Отправка сообщения в телеграм канал
+
+    :param text: Текст сообщения
+    :param photo_file_id: id файла с фото или None, если его нет
+    :param channel_username: Username канала, куда будет отправлено сообщение
+    """
+    from telegram_bot.bot import bot
+    try:
+        if photo_file_id:
+            await bot.send_photo(
+                channel_username, photo_file_id, caption=text)
+        else:
+            await bot.send_message(channel_username, text)
+    except aiogram_exceptions.Unauthorized:
+        raise ApplicationLogicException(Messages.BOT_NOT_AUTHORIZED_IN_CHANNEL)
+
+
+class ToChannelResender:
+    """Класс для переотправки сообщений в канал."""
+
+    # Сообщение, если объект с id не будет найден
+    obj_not_founded_message = ''
+    # Сообщение, если объект уже ранее опубликовывался
+    already_published_message = ''
+    # Сообщение об успешной переотправке
+    successful_message = ''
+    # Модель переотправляемого объекта (анкета или история)
+    model = None
+
+    def __init__(self, obj_id, original_message):
+        """
+        :param obj_id: id отправляемого объекта в базе
+        :param original_message: Оригинальное отправляемое сообщение, откуда
+            будет браться текст и изображение
+        """
+        self.obj_id = obj_id
+        self.original_message = original_message
+
+    async def send(self):
+        """Отправка сообщения в канал."""
+        message = self.original_message
+        obj = await self.model.filter(id=self.obj_id).first()
+        if not obj:
+            raise ApplicationLogicException(self.obj_not_founded_message)
+        if obj.is_published:
+            raise ApplicationLogicException(self.already_published_message)
+
+        await send_message_to_channel(
+            message.html_text,
+            photo_file_id=message.photo[-1].file_id if message.photo else None
+        )
+
+        # Помечаем объект как отправленный
+        obj.is_published = True
+        await obj.save()
+
+        await message.answer(self.successful_message)
+
+
+class PersonInfoToChannelResender(ToChannelResender):
+    """Класс для переотправки анкет в канал."""
+
+    obj_not_founded_message = Messages.INFO_NOT_FOUNDED
+    already_published_message = Messages.INFO_ALREADY_PUBLISHED
+    successful_message = Messages.INFO_PUBLISHED_SUCCESSFULLY
+
+    model = PersonInformation
+
+
+class StoryToChannelResender(ToChannelResender):
+    """Класс для переотправки историй в канал."""
+
+    obj_not_founded_message = Messages.STORY_NOT_FOUNDED
+    already_published_message = Messages.STORY_ALREADY_PUBLISHED
+    successful_message = Messages.STORY_PUBLISHED_SUCCESSFULLY
+
+    model = Story
