@@ -28,7 +28,8 @@ from telegram_bot.keyboards import RETURN_KEYBOARD
 from telegram_bot.keyboards import get_actions_kb_params
 from telegram_bot.models import PersonInformation
 from telegram_bot.models import Story
-from telegram_bot.settings import CHANNEL_USERNAME, REDIS_STORAGE_PARAMS
+from telegram_bot.settings import REDIS_STORAGE_PARAMS
+from telegram_bot.settings import ADMIN_OBJS_COUNT_SETTING
 from telegram_bot.settings import TOKEN
 from telegram_bot.states import ProjectStates
 
@@ -124,7 +125,7 @@ async def get_user_stories(message: types.Message, state: FSMContext):
 
     user_stories = await Story.filter(
         is_published=False
-    ).limit(AdminButtonNames.ADMIN_COUNT_SETTING)
+    ).limit(ADMIN_OBJS_COUNT_SETTING)
 
     if not user_stories:
         raise ApplicationLogicException(AdminButtonNames.STORIES_IS_EMPTY)
@@ -154,7 +155,7 @@ async def get_user_info_forms(message: types.Message, state: FSMContext):
 
     persons_information = await PersonInformation.filter(
         is_published=False
-    ).limit(AdminButtonNames.ADMIN_COUNT_SETTING)
+    ).limit(ADMIN_OBJS_COUNT_SETTING)
 
     if not persons_information:
         raise ApplicationLogicException(AdminButtonNames.PERSON_INFOS_IS_EMPTY)
