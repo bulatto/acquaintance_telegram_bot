@@ -78,10 +78,14 @@ class AdminButtonNames:
     APPROVE_STORY = 'Опубликовать историю'
     APPROVE_STORY_CODE = 'approve_story'
     STORIES_IS_EMPTY = 'Список историй пуст'
+    DELETE_STORY = 'Удалить'
+    DELETE_STORY_CODE = 'delete_story'
 
     APPROVE_PERSON_INFO = 'Опубликовать анкету'
-    APPROVE_PERSON_INFO_CODE = 'approve_user_story'
+    APPROVE_PERSON_INFO_CODE = 'approve_user_info'
     PERSON_INFOS_IS_EMPTY = 'Список анкет пуст'
+    DELETE_PERSON_INFO = 'Удалить'
+    DELETE_PERSON_INFO_CODE = 'delete_user_info'
 
     ADMIN_KEYS = (
         GET_STORIES, GET_INFORMATION_FORMS

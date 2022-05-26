@@ -21,10 +21,10 @@ from telegram_bot.exceptions import ApplicationLogicException
 from telegram_bot.filters import AdminFilter
 from telegram_bot.filters import is_admin_message
 from telegram_bot.helpers import create_person_info_from_message, \
-    get_story_callback_data, get_person_info_callback_data, \
     get_obj_id_from_callback_data, send_message_to_channel, \
     StoryToChannelResender, PersonInfoToChannelResender
-from telegram_bot.keyboards import RETURN_KEYBOARD
+from telegram_bot.keyboards import RETURN_KEYBOARD, get_story_keyboard_markup, \
+    get_person_info_keyboard_markup
 from telegram_bot.keyboards import get_actions_kb_params
 from telegram_bot.models import PersonInformation
 from telegram_bot.models import Story
@@ -131,13 +131,17 @@ async def get_user_stories(message: types.Message, state: FSMContext):
         raise ApplicationLogicException(AdminButtonNames.STORIES_IS_EMPTY)
 
     for story in user_stories:
-        story_keyboard = InlineKeyboardMarkup().add(
-            InlineKeyboardButton(
-                AdminButtonNames.APPROVE_STORY,
-                callback_data=get_story_callback_data(story.id)
-            )
-        )
-        await message.answer(story.text, reply_markup=story_keyboard)
+        await message.answer(
+            story.text, reply_markup=get_story_keyboard_markup(story.id))
+
+
+@dp.callback_query_handler(
+    lambda c: AdminButtonNames.DELETE_STORY_CODE in c.data)
+async def delete_story(callback_query: types.CallbackQuery):
+    """Удаление истории вместе с сообщением."""
+    story_id = get_obj_id_from_callback_data(callback_query.data)
+    await Story.filter(id=story_id).delete()
+    await callback_query.message.delete()
 
 
 @dp.callback_query_handler(
@@ -161,16 +165,19 @@ async def get_user_info_forms(message: types.Message, state: FSMContext):
         raise ApplicationLogicException(AdminButtonNames.PERSON_INFOS_IS_EMPTY)
 
     for person_info in persons_information:
-        story_keyboard = InlineKeyboardMarkup().add(
-            InlineKeyboardButton(
-                AdminButtonNames.APPROVE_PERSON_INFO,
-                callback_data=get_person_info_callback_data(person_info.id)
-            )
-        )
         await answer(
             message, person_info.text, person_info.image_file_id,
-            reply_markup=story_keyboard
+            reply_markup=get_person_info_keyboard_markup(person_info.id)
         )
+
+
+@dp.callback_query_handler(
+    lambda c: AdminButtonNames.DELETE_PERSON_INFO_CODE in c.data)
+async def delete_person_info(callback_query: types.CallbackQuery):
+    """Удаление анкеты вместе с сообщением."""
+    info_id = get_obj_id_from_callback_data(callback_query.data)
+    await PersonInformation.filter(id=info_id).delete()
+    await callback_query.message.delete()
 
 
 @dp.callback_query_handler(

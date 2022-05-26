@@ -1,4 +1,5 @@
-from aiogram.types import ReplyKeyboardMarkup
+from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, \
+    InlineKeyboardButton
 from telegram_bot.constants import ButtonNames as BN
 from telegram_bot.constants import AdminButtonNames
 
@@ -25,3 +26,37 @@ actions_kb_params = dict(reply_markup=get_actions_keyboard())
 # Клавиатура с единственной кнопкой "Вернуться"
 RETURN_KEYBOARD = ReplyKeyboardMarkup(
     resize_keyboard=True).add(BN.RETURN)
+
+
+def get_story_keyboard_markup(story_id):
+    """Получение кнопок для работы с историей."""
+    from telegram_bot.helpers import get_callback_data
+    return InlineKeyboardMarkup().add(
+        InlineKeyboardButton(
+            AdminButtonNames.APPROVE_STORY,
+            callback_data=get_callback_data(
+                AdminButtonNames.APPROVE_STORY_CODE, story_id),
+        ),
+        InlineKeyboardButton(
+            AdminButtonNames.DELETE_STORY,
+            callback_data=get_callback_data(
+                AdminButtonNames.DELETE_STORY_CODE, story_id)
+        ),
+    )
+
+
+def get_person_info_keyboard_markup(person_info_id):
+    """Получение кнопок для работы с анкетами."""
+    from telegram_bot.helpers import get_callback_data
+    return InlineKeyboardMarkup().add(
+        InlineKeyboardButton(
+            AdminButtonNames.APPROVE_PERSON_INFO,
+            callback_data=get_callback_data(
+                AdminButtonNames.APPROVE_PERSON_INFO_CODE, person_info_id),
+        ),
+        InlineKeyboardButton(
+            AdminButtonNames.DELETE_PERSON_INFO,
+            callback_data=get_callback_data(
+                AdminButtonNames.DELETE_PERSON_INFO_CODE, person_info_id),
+        ),
+    )

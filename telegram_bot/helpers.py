@@ -85,12 +85,6 @@ def get_callback_data(code, obj_id):
     return f'{code}_{obj_id}'
 
 
-get_story_callback_data = partial(
-    get_callback_data, AdminButtonNames.APPROVE_STORY_CODE)
-get_person_info_callback_data = partial(
-    get_callback_data, AdminButtonNames.APPROVE_PERSON_INFO_CODE)
-
-
 def get_obj_id_from_callback_data(callback_data):
     """Получение id записи из callback_data"""
     return int(callback_data.split('_')[-1])
