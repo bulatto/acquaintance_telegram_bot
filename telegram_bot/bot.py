@@ -2,6 +2,7 @@ import asyncio
 import logging
 import traceback
 
+import sentry_sdk
 from aiogram import Bot
 from aiogram import types
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
@@ -9,9 +10,6 @@ from aiogram.dispatcher import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import ContentType
-from aiogram.types import InlineKeyboardButton
-from aiogram.types import InlineKeyboardMarkup
-from aiogram.utils import exceptions
 from aiogram.utils.executor import Executor
 from telegram_bot.constants import AdminButtonNames
 from telegram_bot.constants import ButtonNames
@@ -20,19 +18,29 @@ from telegram_bot.db import setup_db
 from telegram_bot.exceptions import ApplicationLogicException
 from telegram_bot.filters import AdminFilter
 from telegram_bot.filters import is_admin_message
-from telegram_bot.helpers import create_person_info_from_message, \
-    get_obj_id_from_callback_data, send_message_to_channel, \
-    StoryToChannelResender, PersonInfoToChannelResender
-from telegram_bot.keyboards import RETURN_KEYBOARD, get_story_keyboard_markup, \
-    get_person_info_keyboard_markup
+from telegram_bot.helpers import PersonInfoToChannelResender
+from telegram_bot.helpers import StoryToChannelResender
+from telegram_bot.helpers import create_person_info_from_message
+from telegram_bot.helpers import get_obj_id_from_callback_data
+from telegram_bot.keyboards import RETURN_KEYBOARD
 from telegram_bot.keyboards import get_actions_kb_params
+from telegram_bot.keyboards import get_person_info_keyboard_markup
+from telegram_bot.keyboards import get_story_keyboard_markup
 from telegram_bot.models import PersonInformation
 from telegram_bot.models import Story
-from telegram_bot.settings import REDIS_STORAGE_PARAMS
 from telegram_bot.settings import ADMIN_OBJS_COUNT_SETTING
+from telegram_bot.settings import REDIS_STORAGE_PARAMS
 from telegram_bot.settings import TOKEN
 from telegram_bot.states import ProjectStates
 
+sentry_sdk.init(
+    "https://3dc02893c9ed4e5d83eb2e5ed37cd48d@o1268364.ingest.sentry.io/6455668",
+
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0
+)
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot, storage=RedisStorage2(**REDIS_STORAGE_PARAMS))
@@ -76,12 +84,16 @@ async def process_start_command(message: types.Message):
 async def send_information_form(message: types.Message):
     """Обработчик нажатия на кнопку отправки анкеты сообщений."""
     await message.answer(
-        Messages.SEND_INFORMATION_FORM, reply_markup=RETURN_KEYBOARD)
+        Messages.SEND_INFORMATION_FORM)
+    await message.answer(
+        Messages.INFORMATION_FORM_EXAMPLE,
+        reply_markup=RETURN_KEYBOARD, parse_mode= "Markdown"
+    )
     await ProjectStates.send_information_form.set()
 
 
 # TODO: может сделать всплывающую форму с разными полями (?)
-#  как у бота @BurgerKingBot
+#  как у бота @DurgerKingBot (да, название именно такое:))
 @dp.message_handler(state=ProjectStates.send_information_form,
                     content_types=[ContentType.ANY])
 async def send_information_form_saving(
