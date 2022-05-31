@@ -11,6 +11,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import ContentType
 from aiogram.utils.executor import Executor
+from sentry_sdk import capture_exception
 from telegram_bot.constants import AdminButtonNames
 from telegram_bot.constants import ButtonNames
 from telegram_bot.constants import Messages
@@ -30,17 +31,19 @@ from telegram_bot.models import PersonInformation
 from telegram_bot.models import Story
 from telegram_bot.settings import ADMIN_OBJS_COUNT_SETTING
 from telegram_bot.settings import REDIS_STORAGE_PARAMS
+from telegram_bot.settings import SENTRY_URL
 from telegram_bot.settings import TOKEN
 from telegram_bot.states import ProjectStates
 
-sentry_sdk.init(
-    "https://3dc02893c9ed4e5d83eb2e5ed37cd48d@o1268364.ingest.sentry.io/6455668",
+if SENTRY_URL:
+    sentry_sdk.init(
+        SENTRY_URL,
 
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0
-)
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
+        traces_sample_rate=1.0
+    )
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot, storage=RedisStorage2(**REDIS_STORAGE_PARAMS))
@@ -84,11 +87,9 @@ async def process_start_command(message: types.Message):
 async def send_information_form(message: types.Message):
     """Обработчик нажатия на кнопку отправки анкеты сообщений."""
     await message.answer(
-        Messages.SEND_INFORMATION_FORM)
+        Messages.SEND_INFORMATION_FORM,  parse_mode="Markdown")
     await message.answer(
-        Messages.INFORMATION_FORM_EXAMPLE,
-        reply_markup=RETURN_KEYBOARD, parse_mode= "Markdown"
-    )
+        Messages.INFORMATION_FORM_EXAMPLE, reply_markup=RETURN_KEYBOARD)
     await ProjectStates.send_information_form.set()
 
 
@@ -224,6 +225,9 @@ async def message_not_modified_handler(update, error):
         state = dp.current_state()
         await state.finish()
         # TODO: добавить логирование
+        # Отправка ошибки в Sentry
+        if SENTRY_URL:
+            capture_exception(error)
         traceback.print_exc()
 
     return True

@@ -46,12 +46,14 @@ class Sections:
     DB = 'database'
     TELEGRAM_BOT = 'telegram_bot'
     REDIS = 'redis'
+    SENTRY = 'sentry'
 
 
 # Секции из настроек
 TELEGRAM_BOT_SECTION = conf[Sections.TELEGRAM_BOT]
 DB_SECTION = conf[Sections.DB]
 REDIS_SECTION = conf[Sections.REDIS]
+SENTRY_SECTION = conf[Sections.SENTRY]
 
 
 # Токен телеграм бота
@@ -123,3 +125,5 @@ ADMIN_OBJS_COUNT_SETTING = TELEGRAM_BOT_SECTION.getint(
 if ADMIN_OBJS_COUNT_SETTING < 1:
     raise ImproperlyConfigured(
         'ADMIN_OBJS_COUNT_SETTING должен быть больше и равно 1')
+
+SENTRY_URL = SENTRY_SECTION.get('SENTRY_URL')
