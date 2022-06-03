@@ -12,6 +12,7 @@ from aiogram.dispatcher.filters import Text
 from aiogram.types import ContentType
 from aiogram.utils.executor import Executor
 from sentry_sdk import capture_exception
+from telegram_bot.constants import START_COMMAND
 from telegram_bot.constants import AdminButtonNames
 from telegram_bot.constants import ButtonNames
 from telegram_bot.constants import Messages
@@ -62,7 +63,7 @@ async def answer_with_actions_keyboard(message, text):
 
 
 async def answer(message, text, photo_file_id=None, **kwargs):
-    """Ответ на сообщение с текстом/изображением и доп.параметрами"""
+    """Ответ на сообщение с текстом/изображением и доп. параметрами"""
     if photo_file_id:
         await message.answer_photo(photo_file_id, text, **kwargs)
     else:
@@ -76,7 +77,7 @@ async def cancel_action(message, state=None):
         await state.finish()
 
 
-@dp.message_handler(commands=['start'])
+@dp.message_handler(commands=[START_COMMAND])
 async def process_start_command(message: types.Message):
     """Выдает стартовое сообщение."""
     await message.answer(Messages.START)
@@ -87,7 +88,7 @@ async def process_start_command(message: types.Message):
 async def send_information_form(message: types.Message):
     """Обработчик нажатия на кнопку отправки анкеты сообщений."""
     await message.answer(
-        Messages.SEND_INFORMATION_FORM,  parse_mode="Markdown")
+        Messages.SEND_INFORMATION_FORM, parse_mode="Markdown")
     await message.answer(
         Messages.INFORMATION_FORM_EXAMPLE, reply_markup=RETURN_KEYBOARD)
     await ProjectStates.send_information_form.set()
@@ -102,6 +103,12 @@ async def send_information_form_saving(
     """Сохранение анкеты."""
     if message.text == ButtonNames.RETURN:
         await cancel_action(message, state)
+        return
+
+    if message.text == f'/{START_COMMAND}':
+        await state.finish()
+        await message.answer(Messages.START)
+        await answer_with_actions_keyboard(message, Messages.CHOOSE_ACTION)
         return
 
     await create_person_info_from_message(message)
@@ -126,7 +133,7 @@ async def story_saving(
         await cancel_action(message, state)
         return
 
-    await Story.create(text=message.text)
+    await Story.create(text=message.text, user_id=message.from_user.id)
 
     await answer_with_actions_keyboard(message, Messages.STORY_PROCESSED)
     await state.finish()
@@ -165,8 +172,49 @@ async def process_story_approve(callback_query: types.CallbackQuery):
     await StoryToChannelResender(story_id, callback_query.message).send()
 
 
+@dp.callback_query_handler(
+    lambda c: AdminButtonNames.NEED_TO_EDIT_STORY_CODE in c.data)
+async def need_to_edit_story(callback_query: types.CallbackQuery,
+                             state: FSMContext):
+    """Отправка истории на редактирование вместе с сообщением от админа."""
+    story_id = get_obj_id_from_callback_data(callback_query.data)
+    await state.set_data({'user_story_id': story_id})
+
+    await callback_query.message.answer(
+        AdminButtonNames.NEED_TO_EDIT_TO_ADMIN, reply_markup=RETURN_KEYBOARD)
+
+    await ProjectStates.need_to_edit_story.set()
+
+
+@dp.message_handler(state=ProjectStates.need_to_edit_story)
+async def need_to_edit_story_send_msg(
+        message: types.Message, state: FSMContext):
+    """Отправка истории на редактирование вместе с сообщением от админа."""
+
+    state_data = await state.get_data()
+    user_story_id = state_data.get('user_story_id', None)
+    if user_story_id:
+        story = await Story.filter(id=user_story_id).first()
+
+        await bot.send_message(
+            story.user_id,
+            f'{AdminButtonNames.ADMIN_ANSWER}\n{Messages.STORY_NEED_TO_EDIT}',
+            parse_mode="Markdown"
+        )
+        await bot.send_message(story.user_id, story.text)
+        await bot.send_message(
+            story.user_id, f'{AdminButtonNames.ADMIN_ANSWER}\n{message.text}',
+            parse_mode="Markdown"
+        )
+        await answer_with_actions_keyboard(
+            message, AdminButtonNames.ADMIN_MSG_SENDED)
+    else:
+        raise ApplicationLogicException('История не найдена!')
+    await state.finish()
+
+
 @dp.message_handler(Text(
-    AdminButtonNames.GET_INFORMATION_FORMS), is_admin=True)
+    AdminButtonNames.GET_PERSON_INFO), is_admin=True)
 async def get_user_info_forms(message: types.Message, state: FSMContext):
     """Получение админом анкет."""
 
@@ -200,6 +248,50 @@ async def process_person_info_approve(callback_query: types.CallbackQuery):
     person_info_id = get_obj_id_from_callback_data(callback_query.data)
     await PersonInfoToChannelResender(
         person_info_id, callback_query.message).send()
+
+
+@dp.callback_query_handler(
+    lambda c: AdminButtonNames.NEED_TO_EDIT_PERSON_INFO_CODE in c.data)
+async def need_to_edit_person_info(callback_query: types.CallbackQuery,
+                             state: FSMContext):
+    """Отправка анкеты на редактирование вместе с сообщением от админа."""
+    person_info_id = get_obj_id_from_callback_data(callback_query.data)
+    await state.set_data({'user_person_info_id': person_info_id})
+
+    await callback_query.message.answer(
+        AdminButtonNames.NEED_TO_EDIT_TO_ADMIN, reply_markup=RETURN_KEYBOARD)
+
+    await ProjectStates.need_to_edit_person_info.set()
+
+
+@dp.message_handler(state=ProjectStates.need_to_edit_person_info)
+async def need_to_edit_person_info_send_msg(
+        message: types.Message, state: FSMContext):
+    """Отправка анкеты на редактирование вместе с сообщением от админа."""
+
+    state_data = await state.get_data()
+    user_person_info_id = state_data.get('user_person_info_id', None)
+    if user_person_info_id:
+        person_info = await PersonInformation.filter(
+            id=user_person_info_id).first()
+
+        await bot.send_message(
+            person_info.user_id,
+            f'{AdminButtonNames.ADMIN_ANSWER}\n{Messages.INFO_NEED_TO_EDIT}',
+            parse_mode="Markdown"
+        )
+        await bot.send_photo(
+            person_info.user_id, person_info.image_file_id, person_info.text)
+        await bot.send_message(
+            person_info.user_id,
+            f'{AdminButtonNames.ADMIN_ANSWER}\n{message.text}',
+            parse_mode="Markdown"
+        )
+        await answer_with_actions_keyboard(
+            message, AdminButtonNames.ADMIN_MSG_SENDED)
+    else:
+        raise ApplicationLogicException('Анкета не найдена!')
+    await state.finish()
 
 
 @dp.message_handler(content_types=[ContentType.ANY])

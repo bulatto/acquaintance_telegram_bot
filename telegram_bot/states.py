@@ -11,3 +11,8 @@ class ProjectStates(StatesGroup):
     get_information_forms = State()
     # Получений историй
     get_stories = State()
+
+    # Состояние ввода сообщения от админа, для редактирования анкеты
+    need_to_edit_person_info = State()
+    # Состояние ввода сообщения от админа, для редактирования истории
+    need_to_edit_story = State()

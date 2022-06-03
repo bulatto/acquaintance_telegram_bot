@@ -112,7 +112,8 @@ async def create_person_info_from_message(message):
     else:
         raise ApplicationLogicException(Messages.PHOTO_NOT_EXISTS)
 
-    person_info = await PersonInformation.create(text=text, **image_params)
+    person_info = await PersonInformation.create(
+        text=text, user_id=message.from_user.id, **image_params)
     return person_info
 
 

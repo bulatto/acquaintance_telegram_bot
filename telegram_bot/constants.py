@@ -1,5 +1,6 @@
 from telegram_bot.settings import ADMIN_OBJS_COUNT_SETTING
 
+START_COMMAND = 'start'
 
 # Поле, котором хранится никнэйм пользователя
 USERNAME_FIELD = 'username'
@@ -49,6 +50,7 @@ class Messages:
     STORY_ALREADY_PUBLISHED = 'История уже была опубликована'
     STORY_NOT_FOUNDED = 'История не найдена в базе данных'
     STORY_PUBLISHED_SUCCESSFULLY = 'История успешно опубликована'
+    STORY_NEED_TO_EDIT = 'Необходимо внести изменения в вашу историю:'
 
     # Сообщение для действий с анкетами
     SEND_INFORMATION_FORM = (
@@ -77,6 +79,7 @@ class Messages:
     INFO_ALREADY_PUBLISHED = 'Анкета уже была опубликована'
     INFO_NOT_FOUNDED = 'Анкета не найдена в базе данных'
     INFO_PUBLISHED_SUCCESSFULLY = 'Анкета успешно опубликована'
+    INFO_NEED_TO_EDIT = 'Необходимо внести изменения в вашу анкету:'
 
 
 class ButtonNames:
@@ -90,20 +93,28 @@ class AdminButtonNames:
     """Названия админских кнопок"""
 
     GET_STORIES = f'Получить {ADMIN_OBJS_COUNT_SETTING} историй'
-    GET_INFORMATION_FORMS = f'Получить {ADMIN_OBJS_COUNT_SETTING} анкет'
+    GET_PERSON_INFO = f'Получить {ADMIN_OBJS_COUNT_SETTING} анкет'
 
-    APPROVE_STORY = 'Опубликовать историю'
+    APPROVE = 'Опубликовать'
+    NEED_TO_EDIT = 'На исправление'
+    DELETE = 'Удалить'
+
     APPROVE_STORY_CODE = 'approve_story'
-    STORIES_IS_EMPTY = 'Список историй пуст'
-    DELETE_STORY = 'Удалить'
+    NEED_TO_EDIT_STORY_CODE = 'need_to_edit_story'
     DELETE_STORY_CODE = 'delete_story'
+    STORIES_IS_EMPTY = 'Список историй пуст'
 
-    APPROVE_PERSON_INFO = 'Опубликовать анкету'
     APPROVE_PERSON_INFO_CODE = 'approve_user_info'
-    PERSON_INFOS_IS_EMPTY = 'Список анкет пуст'
-    DELETE_PERSON_INFO = 'Удалить'
+    NEED_TO_EDIT_PERSON_INFO_CODE = 'need_to_edit_user_info'
     DELETE_PERSON_INFO_CODE = 'delete_user_info'
+    PERSON_INFOS_IS_EMPTY = 'Список анкет пуст'
+
+    NEED_TO_EDIT_TO_ADMIN = (
+        'Напишите свои замечания (что конкретно нужно исправить пользователю)')
+    ADMIN_MSG_SENDED = 'Ваше замечание отправлено пользователю'
+
+    ADMIN_ANSWER = '*[Ответ от администратора]*'
 
     ADMIN_KEYS = (
-        GET_STORIES, GET_INFORMATION_FORMS
+        GET_STORIES, GET_PERSON_INFO
     )

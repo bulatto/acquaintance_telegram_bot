@@ -33,12 +33,17 @@ def get_story_keyboard_markup(story_id):
     from telegram_bot.helpers import get_callback_data
     return InlineKeyboardMarkup().add(
         InlineKeyboardButton(
-            AdminButtonNames.APPROVE_STORY,
+            AdminButtonNames.APPROVE,
             callback_data=get_callback_data(
                 AdminButtonNames.APPROVE_STORY_CODE, story_id),
         ),
         InlineKeyboardButton(
-            AdminButtonNames.DELETE_STORY,
+            AdminButtonNames.NEED_TO_EDIT,
+            callback_data=get_callback_data(
+                AdminButtonNames.NEED_TO_EDIT_STORY_CODE, story_id)
+        ),
+        InlineKeyboardButton(
+            AdminButtonNames.DELETE,
             callback_data=get_callback_data(
                 AdminButtonNames.DELETE_STORY_CODE, story_id)
         ),
@@ -50,12 +55,17 @@ def get_person_info_keyboard_markup(person_info_id):
     from telegram_bot.helpers import get_callback_data
     return InlineKeyboardMarkup().add(
         InlineKeyboardButton(
-            AdminButtonNames.APPROVE_PERSON_INFO,
+            AdminButtonNames.APPROVE,
             callback_data=get_callback_data(
                 AdminButtonNames.APPROVE_PERSON_INFO_CODE, person_info_id),
         ),
         InlineKeyboardButton(
-            AdminButtonNames.DELETE_PERSON_INFO,
+            AdminButtonNames.NEED_TO_EDIT,
+            callback_data=get_callback_data(
+                AdminButtonNames.NEED_TO_EDIT_PERSON_INFO_CODE, person_info_id)
+        ),
+        InlineKeyboardButton(
+            AdminButtonNames.DELETE,
             callback_data=get_callback_data(
                 AdminButtonNames.DELETE_PERSON_INFO_CODE, person_info_id),
         ),
