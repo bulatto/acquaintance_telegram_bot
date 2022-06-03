@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS "personinformation" (
     "id" SERIAL NOT NULL PRIMARY KEY,
     "text" VARCHAR(4096) NOT NULL,
     "image_path" VARCHAR(200) NOT NULL,
-    "is_published" BOOL NOT NULL  DEFAULT False
+    "is_published" BOOL NOT NULL  DEFAULT False,
+    "user_id" INT NOT NULL
 );
 COMMENT ON TABLE "personinformation" IS 'Модель для хранения анкеты';
 CREATE TABLE IF NOT EXISTS "personinformationview" (
@@ -18,7 +19,8 @@ CREATE TABLE IF NOT EXISTS "story" (
     "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     "id" SERIAL NOT NULL PRIMARY KEY,
     "text" VARCHAR(4096) NOT NULL,
-    "is_published" BOOL NOT NULL  DEFAULT False
+    "is_published" BOOL NOT NULL  DEFAULT False,
+    "user_id" INT NOT NULL
 );
 COMMENT ON TABLE "story" IS 'Модель для хранения историй';
 CREATE TABLE IF NOT EXISTS "storyview" (

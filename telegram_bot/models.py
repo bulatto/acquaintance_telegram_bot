@@ -33,6 +33,8 @@ class Story(CreatedDateModel):
     text = fields.CharField(max_length=MAX_TELEGRAM_MESSAGE_LENGTH)
     # Опубликована ли история
     is_published = fields.BooleanField(default=False)
+    # Пользователь отправивший историю
+    user_id = fields.IntField()
 
 
 class StoryView(CreatedDateModel):
@@ -54,3 +56,5 @@ class PersonInformation(DateAwareModel):
     image_file_id = fields.CharField(default='', max_length=200)
     # Опубликована ли анкета
     is_published = fields.BooleanField(default=False)
+    # Пользователь отправивший анкету
+    user_id = fields.IntField()
