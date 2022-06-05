@@ -8,6 +8,35 @@ USERNAME_FIELD = 'username'
 MAX_TELEGRAM_MESSAGE_LENGTH = 4096
 
 
+class PersonInfoEnum:
+    """Перечисление полей анкеты"""
+
+    NAME_FIELD = 'name'
+    AGE_FIELD = 'age'
+    INTERESTS_FIELD = 'interests'
+    ABOUT_FIELD = 'about'
+    CONTACTS_FIELD = 'contacts'
+
+    PERSON_INFO_FIELDS = {
+        NAME_FIELD: 'Имя',
+        AGE_FIELD: 'Возраст',
+        INTERESTS_FIELD: 'Интересы',
+        ABOUT_FIELD: 'О себе',
+        CONTACTS_FIELD: 'Контакты',
+    }
+
+    PERSON_INFO_EXAMPLE = {
+        PERSON_INFO_FIELDS[NAME_FIELD]: 'Павел',
+        PERSON_INFO_FIELDS[AGE_FIELD]: '37',
+        PERSON_INFO_FIELDS[INTERESTS_FIELD]:
+            'Волейбол, квизы, настольные игры.',
+        PERSON_INFO_FIELDS[ABOUT_FIELD]:
+            'Создаю крутые вещи, в свободное время занимаюсь спортом. '
+            'Люблю играть на гитаре. Ищу спутницу жизни :)',
+        PERSON_INFO_FIELDS[CONTACTS_FIELD]: 'Telegram: @durov',
+    }
+
+
 class Messages:
     """Класс для хранения сообщений, которые используются в проекте."""
 
@@ -52,6 +81,10 @@ class Messages:
     STORY_PUBLISHED_SUCCESSFULLY = 'История успешно опубликована'
     STORY_NEED_TO_EDIT = 'Необходимо внести изменения в вашу историю:'
 
+    person_info_example = f'\n'.join(
+        f'*{key}: {value}*' for key, value in
+        PersonInfoEnum.PERSON_INFO_EXAMPLE.items()
+    )
     # Сообщение для действий с анкетами
     SEND_INFORMATION_FORM = (
         'Напишите информацию о себе, добавьте изображение и '
@@ -59,21 +92,13 @@ class Messages:
         'В случае успешного рассмотрения администратором вашей анкеты '
         'она будет выложена в телеграм канал.\n\n'
         'Пример анкеты (но ваша креативность приветствуется!):'
-        '\n'
-        '*Имя: Иван* \n'
-        '*Возраст: 25* \n'
-        '*Интересы: Волейбол, квизы, настольные игры.* \n'
-        '*О себе: Работаю в финансовой сфере, в свободное время занимаюсь* '
-        '*спортом. Люблю играть на гитаре. Ищу спутницу жизни :)* \n\n'
+        '\n{person_info_example}\n\n'
         'Ниже будет шаблон, который вы можете скопировать и заполнить'
-    )
-    # Пример типовой анкеты
-    INFORMATION_FORM_EXAMPLE = (
-        'Имя:\n'
-        'Возраст:\n'
-        'Интересы:\n'
-        'О себе:'
-    )
+    ).format(person_info_example=person_info_example)
+
+    # Шаблон типовой анкеты
+    INFORMATION_FORM_TEMPLATE = ':\n'.join(
+        PersonInfoEnum.PERSON_INFO_FIELDS.values()) + ':'
 
     INFORMATION_FORM_PROCESSED = 'Ваша анкета успешно сохранена'
     INFO_ALREADY_PUBLISHED = 'Анкета уже была опубликована'
