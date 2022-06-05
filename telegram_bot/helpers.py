@@ -5,9 +5,13 @@ from typing import Optional
 
 from aiogram.types import PhotoSize
 from aiogram.utils import exceptions as aiogram_exceptions
+from telegram_bot.constants import START_COMMAND
+from telegram_bot.constants import ButtonNames
 from telegram_bot.constants import Messages
 from telegram_bot.exceptions import ApplicationLogicException
 from telegram_bot.exceptions import ImageProcessingException
+from telegram_bot.filters import is_admin_message
+from telegram_bot.keyboards import get_actions_kb_params
 from telegram_bot.models import PersonInformation
 from telegram_bot.models import Story
 from telegram_bot.settings import CHANNEL_USERNAME
@@ -147,6 +151,37 @@ async def send_message_to_channel(
             await bot.send_message(channel_username, text)
     except aiogram_exceptions.Unauthorized:
         raise ApplicationLogicException(Messages.BOT_NOT_AUTHORIZED_IN_CHANNEL)
+
+
+async def cancel_action(message, state=None):
+    """Отмена действий и вывод обычной клавиатуры с действиями."""
+    await answer_with_actions_keyboard(message, Messages.CHOOSE_ACTION)
+    if state:
+        await state.finish()
+
+
+async def answer_with_actions_keyboard(message, text):
+    """Обычный ответ на сообщение с выдачей клавиатуры действий"""
+    await message.answer(
+        text,
+        **get_actions_kb_params(is_admin_message(message))
+    )
+
+
+async def check_return_or_start_cmd(message, state):
+    """Проверка введенной команды для ключевых слов "Вернуться" и "/start"."""
+
+    if message.text == ButtonNames.RETURN:
+        await cancel_action(message, state)
+        return True
+
+    if message.text == f'/{START_COMMAND}':
+        await state.finish()
+        await message.answer(Messages.START)
+        await answer_with_actions_keyboard(message, Messages.CHOOSE_ACTION)
+        return True
+
+    return False
 
 
 class ToChannelResender:

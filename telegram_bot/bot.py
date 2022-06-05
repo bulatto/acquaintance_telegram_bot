@@ -19,13 +19,13 @@ from telegram_bot.constants import Messages
 from telegram_bot.db import setup_db
 from telegram_bot.exceptions import ApplicationLogicException
 from telegram_bot.filters import AdminFilter
-from telegram_bot.filters import is_admin_message
 from telegram_bot.helpers import PersonInfoToChannelResender
 from telegram_bot.helpers import StoryToChannelResender
+from telegram_bot.helpers import answer_with_actions_keyboard
+from telegram_bot.helpers import check_return_or_start_cmd
 from telegram_bot.helpers import create_person_info_from_message
 from telegram_bot.helpers import get_obj_id_from_callback_data
 from telegram_bot.keyboards import RETURN_KEYBOARD
-from telegram_bot.keyboards import get_actions_kb_params
 from telegram_bot.keyboards import get_person_info_keyboard_markup
 from telegram_bot.keyboards import get_story_keyboard_markup
 from telegram_bot.models import PersonInformation
@@ -54,27 +54,12 @@ runner = Executor(dp)
 logging.basicConfig(level=logging.INFO)
 
 
-async def answer_with_actions_keyboard(message, text):
-    """Обычный ответ на сообщение с выдачей клавиатуры действий"""
-    await message.answer(
-        text,
-        **get_actions_kb_params(is_admin_message(message))
-    )
-
-
 async def answer(message, text, photo_file_id=None, **kwargs):
     """Ответ на сообщение с текстом/изображением и доп. параметрами"""
     if photo_file_id:
         await message.answer_photo(photo_file_id, text, **kwargs)
     else:
         await message.answer(text, **kwargs)
-
-
-async def cancel_action(message, state=None):
-    """Отмена действий и вывод обычной клавиатуры с действиями."""
-    await answer_with_actions_keyboard(message, Messages.CHOOSE_ACTION)
-    if state:
-        await state.finish()
 
 
 @dp.message_handler(commands=[START_COMMAND])
@@ -101,14 +86,9 @@ async def send_information_form(message: types.Message):
 async def send_information_form_saving(
         message: types.Message, state: FSMContext):
     """Сохранение анкеты."""
-    if message.text == ButtonNames.RETURN:
-        await cancel_action(message, state)
-        return
 
-    if message.text == f'/{START_COMMAND}':
-        await state.finish()
-        await message.answer(Messages.START)
-        await answer_with_actions_keyboard(message, Messages.CHOOSE_ACTION)
+    return_or_start_cmd = await check_return_or_start_cmd(message, state)
+    if return_or_start_cmd:
         return
 
     await create_person_info_from_message(message)
@@ -129,8 +109,8 @@ async def send_story(message: types.Message):
 async def story_saving(
         message: types.Message, state: FSMContext):
     """Сохранение истории."""
-    if message.text == ButtonNames.RETURN:
-        await cancel_action(message, state)
+    return_or_start_cmd = await check_return_or_start_cmd(message, state)
+    if return_or_start_cmd:
         return
 
     await Story.create(text=message.text, user_id=message.from_user.id)
@@ -190,6 +170,10 @@ async def need_to_edit_story(callback_query: types.CallbackQuery,
 async def need_to_edit_story_send_msg(
         message: types.Message, state: FSMContext):
     """Отправка истории на редактирование вместе с сообщением от админа."""
+
+    return_or_start_cmd = await check_return_or_start_cmd(message, state)
+    if return_or_start_cmd:
+        return
 
     state_data = await state.get_data()
     user_story_id = state_data.get('user_story_id', None)
@@ -268,6 +252,10 @@ async def need_to_edit_person_info(callback_query: types.CallbackQuery,
 async def need_to_edit_person_info_send_msg(
         message: types.Message, state: FSMContext):
     """Отправка анкеты на редактирование вместе с сообщением от админа."""
+
+    return_or_start_cmd = await check_return_or_start_cmd(message, state)
+    if return_or_start_cmd:
+        return
 
     state_data = await state.get_data()
     user_person_info_id = state_data.get('user_person_info_id', None)
