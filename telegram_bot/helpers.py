@@ -113,8 +113,11 @@ async def create_person_info_from_message(message):
         photo = message.photo[-1]
         image_params = dict(image_file_id=photo.file_id)
     else:
-        raise ApplicationLogicException(
-            f'{Messages.PHOTO_NOT_EXISTS}\n{validation_error}')
+        no_photo_message = (
+            f'{Messages.PHOTO_NOT_EXISTS}\n{validation_error}' if
+            validation_error else Messages.PHOTO_NOT_EXISTS)
+
+        raise ApplicationLogicException(no_photo_message)
 
     if validation_error:
         raise ApplicationLogicException(validation_error)
