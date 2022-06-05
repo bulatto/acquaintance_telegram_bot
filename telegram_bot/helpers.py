@@ -1,17 +1,18 @@
 import os
 import uuid
 from datetime import date
-from functools import partial
 from typing import Optional
 
 from aiogram.types import PhotoSize
 from aiogram.utils import exceptions as aiogram_exceptions
-
-from telegram_bot.constants import AdminButtonNames, Messages
-from telegram_bot.exceptions import ImageProcessingException, \
-    ApplicationLogicException
-from telegram_bot.models import PersonInformation, Story
-from telegram_bot.settings import MEDIA_DIR, CHANNEL_USERNAME
+from telegram_bot.constants import Messages
+from telegram_bot.exceptions import ApplicationLogicException
+from telegram_bot.exceptions import ImageProcessingException
+from telegram_bot.models import PersonInformation
+from telegram_bot.models import Story
+from telegram_bot.settings import CHANNEL_USERNAME
+from telegram_bot.settings import MEDIA_DIR
+from telegram_bot.validators import PersonInfoValidator
 
 
 def generate_file_name(suffix):
@@ -105,12 +106,18 @@ async def create_person_info_from_message(message):
     text = message.text or message.caption or ''
     if not text:
         raise ApplicationLogicException(Messages.PERSON_INFORMATION_NOT_EXISTS)
+    else:
+        validation_error = PersonInfoValidator(text).validate()
 
     if message.photo:
         photo = message.photo[-1]
         image_params = dict(image_file_id=photo.file_id)
     else:
-        raise ApplicationLogicException(Messages.PHOTO_NOT_EXISTS)
+        raise ApplicationLogicException(
+            f'{Messages.PHOTO_NOT_EXISTS}\n{validation_error}')
+
+    if validation_error:
+        raise ApplicationLogicException(validation_error)
 
     person_info = await PersonInformation.create(
         text=text, user_id=message.from_user.id, **image_params)

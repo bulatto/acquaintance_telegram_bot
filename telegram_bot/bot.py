@@ -90,7 +90,7 @@ async def send_information_form(message: types.Message):
     await message.answer(
         Messages.SEND_INFORMATION_FORM, parse_mode="Markdown")
     await message.answer(
-        Messages.INFORMATION_FORM_EXAMPLE, reply_markup=RETURN_KEYBOARD)
+        Messages.INFORMATION_FORM_TEMPLATE, reply_markup=RETURN_KEYBOARD)
     await ProjectStates.send_information_form.set()
 
 
