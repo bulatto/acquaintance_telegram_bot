@@ -10,7 +10,7 @@ class PersonInfoValidator:
 
     _person_info = None
 
-    FIELD_ERROR = 'Незаполненно поле: "{field_name}"'
+    FIELD_ERROR = 'Не заполнено поле: "{field_name}"'
 
     FIELD_REGEX = r'({field_value}):.+'
 
