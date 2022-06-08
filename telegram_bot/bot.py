@@ -12,6 +12,7 @@ from aiogram.dispatcher.filters import Text
 from aiogram.types import ContentType
 from aiogram.utils.executor import Executor
 from sentry_sdk import capture_exception
+from sentry_sdk import capture_message
 from telegram_bot.constants import START_COMMAND
 from telegram_bot.constants import AdminButtonNames
 from telegram_bot.constants import ButtonNames
@@ -280,6 +281,14 @@ async def need_to_edit_person_info_send_msg(
     else:
         raise ApplicationLogicException('Анкета не найдена!')
     await state.finish()
+
+
+@dp.message_handler(Text(AdminButtonNames.SEND_SENTRY_ERROR_CMD))
+async def send_test_setnry_error(message: types.Message):
+    """Обработчик отправки тестового сообщения в Sentry."""
+    capture_message('Тестовое сообщение в Sentry')
+    await answer_with_actions_keyboard(
+        message, 'Тестовое сообщение в Sentry отправлено!')
 
 
 @dp.message_handler(content_types=[ContentType.ANY])

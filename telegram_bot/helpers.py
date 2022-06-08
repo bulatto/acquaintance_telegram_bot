@@ -17,6 +17,7 @@ from telegram_bot.models import Story
 from telegram_bot.settings import CHANNEL_USERNAME
 from telegram_bot.settings import MEDIA_DIR
 from telegram_bot.validators import PersonInfoValidator
+from tortoise.transactions import in_transaction
 
 
 def generate_file_name(suffix):
@@ -151,6 +152,8 @@ async def send_message_to_channel(
             await bot.send_message(channel_username, text)
     except aiogram_exceptions.Unauthorized:
         raise ApplicationLogicException(Messages.BOT_NOT_AUTHORIZED_IN_CHANNEL)
+    except aiogram_exceptions.NeedAdministratorRightsInTheChannel:
+        raise ApplicationLogicException(Messages.BOT_NEED_ADMIN_RIGHTS)
 
 
 async def cancel_action(message, state=None):
@@ -207,23 +210,26 @@ class ToChannelResender:
 
     async def send(self):
         """Отправка сообщения в канал."""
-        message = self.original_message
-        obj = await self.model.filter(id=self.obj_id).first()
-        if not obj:
-            raise ApplicationLogicException(self.obj_not_founded_message)
-        if obj.is_published:
-            raise ApplicationLogicException(self.already_published_message)
 
-        await send_message_to_channel(
-            message.html_text,
-            photo_file_id=message.photo[-1].file_id if message.photo else None
-        )
+        async with in_transaction():
+            message = self.original_message
+            obj = await self.model.filter(id=self.obj_id).first()
+            if not obj:
+                raise ApplicationLogicException(self.obj_not_founded_message)
+            if obj.is_published:
+                raise ApplicationLogicException(self.already_published_message)
 
-        # Помечаем объект как отправленный
-        obj.is_published = True
-        await obj.save()
+            await send_message_to_channel(
+                message.html_text,
+                photo_file_id=message.photo[-1].file_id if
+                message.photo else None
+            )
 
-        await message.answer(self.successful_message)
+            # Помечаем объект как отправленный
+            obj.is_published = True
+            await obj.save()
+
+            await message.answer(self.successful_message)
 
 
 class PersonInfoToChannelResender(ToChannelResender):
