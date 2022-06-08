@@ -68,6 +68,9 @@ class Messages:
     IMAGE_PROCESSING_ERROR = 'При обработке изображения произошла ошибка'
     BOT_NOT_AUTHORIZED_IN_CHANNEL = (
         'Бот должен состоять в канале, куда пересылаются анкеты и истории')
+    BOT_NEED_ADMIN_RIGHTS = (
+        'Бот должен иметь права администратора в канале, куда пересылаются '
+        'анкеты и истории (для отправки сообщений)')
 
     # Сообщение для действий с историями
     SEND_STORY = (
@@ -143,3 +146,5 @@ class AdminButtonNames:
     ADMIN_KEYS = (
         GET_STORIES, GET_PERSON_INFO
     )
+
+    SEND_SENTRY_ERROR_CMD = '/send_sentry_error'
