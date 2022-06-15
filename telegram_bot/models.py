@@ -58,3 +58,13 @@ class PersonInformation(DateAwareModel):
     is_published = fields.BooleanField(default=False)
     # Пользователь отправивший анкету
     user_id = fields.IntField()
+
+
+class AdminUserId(DateAwareModel):
+    """
+    Модель для хранения связи админских логинов и его user_id, для возможности
+    отправки админам сообщений.
+    """
+    id = fields.IntField(pk=True)
+    username = fields.CharField(max_length=32)
+    user_id = fields.IntField()

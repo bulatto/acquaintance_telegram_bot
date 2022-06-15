@@ -78,7 +78,10 @@ class Messages:
         'В случае успешного рассмотрения администратором вашей истории '
         'она будет выложена в телеграм канал.'
     )
-    STORY_PROCESSED = 'Ваша история успешно сохранена'
+    STORY_PROCESSED = (
+        'Ваша история успешно сохранена!\nПосле проверки модератором она будет'
+        ' размещена в нашем канале.'
+    )
     STORY_ALREADY_PUBLISHED = 'История уже была опубликована'
     STORY_NOT_FOUNDED = 'История не найдена в базе данных'
     STORY_PUBLISHED_SUCCESSFULLY = 'История успешно опубликована'
@@ -103,7 +106,10 @@ class Messages:
     INFORMATION_FORM_TEMPLATE = ':\n'.join(
         PersonInfoEnum.PERSON_INFO_FIELDS.values()) + ':'
 
-    INFORMATION_FORM_PROCESSED = 'Ваша анкета успешно сохранена'
+    INFORMATION_FORM_PROCESSED = (
+        'Ваша анкета успешно сохранена!\nПосле проверки модератором она будет '
+        'размещена в нашем канале.'
+    )
     INFO_ALREADY_PUBLISHED = 'Анкета уже была опубликована'
     INFO_NOT_FOUNDED = 'Анкета не найдена в базе данных'
     INFO_PUBLISHED_SUCCESSFULLY = 'Анкета успешно опубликована'
@@ -117,8 +123,8 @@ class ButtonNames:
     RETURN = 'Вернуться'
 
 
-class AdminButtonNames:
-    """Названия админских кнопок"""
+class AdminConsts:
+    """Названия админских кнопок и сообщений."""
 
     GET_STORIES = f'Получить {ADMIN_OBJS_COUNT_SETTING} историй'
     GET_PERSON_INFO = f'Получить {ADMIN_OBJS_COUNT_SETTING} анкет'
@@ -131,11 +137,13 @@ class AdminButtonNames:
     NEED_TO_EDIT_STORY_CODE = 'need_to_edit_story'
     DELETE_STORY_CODE = 'delete_story'
     STORIES_IS_EMPTY = 'Список историй пуст'
+    NEW_STORY_MSG = 'Боту отправили новую историю!'
 
     APPROVE_PERSON_INFO_CODE = 'approve_user_info'
     NEED_TO_EDIT_PERSON_INFO_CODE = 'need_to_edit_user_info'
     DELETE_PERSON_INFO_CODE = 'delete_user_info'
     PERSON_INFOS_IS_EMPTY = 'Список анкет пуст'
+    NEW_PERSON_INFO_MSG = 'Боту отправили новую анкету!'
 
     NEED_TO_EDIT_TO_ADMIN = (
         'Напишите свои замечания (что конкретно нужно исправить пользователю)')

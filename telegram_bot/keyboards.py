@@ -1,7 +1,8 @@
-from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, \
-    InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import ReplyKeyboardMarkup
+from telegram_bot.constants import AdminConsts
 from telegram_bot.constants import ButtonNames as BN
-from telegram_bot.constants import AdminButtonNames
 
 
 def get_actions_keyboard(is_admin=False):
@@ -11,7 +12,7 @@ def get_actions_keyboard(is_admin=False):
         kb.add(button_name)
 
     if is_admin:
-        for admin_button in AdminButtonNames.ADMIN_KEYS:
+        for admin_button in AdminConsts.ADMIN_KEYS:
             kb.add(admin_button)
 
     return kb
@@ -33,19 +34,19 @@ def get_story_keyboard_markup(story_id):
     from telegram_bot.helpers import get_callback_data
     return InlineKeyboardMarkup().add(
         InlineKeyboardButton(
-            AdminButtonNames.APPROVE,
+            AdminConsts.APPROVE,
             callback_data=get_callback_data(
-                AdminButtonNames.APPROVE_STORY_CODE, story_id),
+                AdminConsts.APPROVE_STORY_CODE, story_id),
         ),
         InlineKeyboardButton(
-            AdminButtonNames.NEED_TO_EDIT,
+            AdminConsts.NEED_TO_EDIT,
             callback_data=get_callback_data(
-                AdminButtonNames.NEED_TO_EDIT_STORY_CODE, story_id)
+                AdminConsts.NEED_TO_EDIT_STORY_CODE, story_id)
         ),
         InlineKeyboardButton(
-            AdminButtonNames.DELETE,
+            AdminConsts.DELETE,
             callback_data=get_callback_data(
-                AdminButtonNames.DELETE_STORY_CODE, story_id)
+                AdminConsts.DELETE_STORY_CODE, story_id)
         ),
     )
 
@@ -55,18 +56,18 @@ def get_person_info_keyboard_markup(person_info_id):
     from telegram_bot.helpers import get_callback_data
     return InlineKeyboardMarkup().add(
         InlineKeyboardButton(
-            AdminButtonNames.APPROVE,
+            AdminConsts.APPROVE,
             callback_data=get_callback_data(
-                AdminButtonNames.APPROVE_PERSON_INFO_CODE, person_info_id),
+                AdminConsts.APPROVE_PERSON_INFO_CODE, person_info_id),
         ),
         InlineKeyboardButton(
-            AdminButtonNames.NEED_TO_EDIT,
+            AdminConsts.NEED_TO_EDIT,
             callback_data=get_callback_data(
-                AdminButtonNames.NEED_TO_EDIT_PERSON_INFO_CODE, person_info_id)
+                AdminConsts.NEED_TO_EDIT_PERSON_INFO_CODE, person_info_id)
         ),
         InlineKeyboardButton(
-            AdminButtonNames.DELETE,
+            AdminConsts.DELETE,
             callback_data=get_callback_data(
-                AdminButtonNames.DELETE_PERSON_INFO_CODE, person_info_id),
+                AdminConsts.DELETE_PERSON_INFO_CODE, person_info_id),
         ),
     )

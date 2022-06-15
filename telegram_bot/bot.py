@@ -14,7 +14,7 @@ from aiogram.utils.executor import Executor
 from sentry_sdk import capture_exception
 from sentry_sdk import capture_message
 from telegram_bot.constants import START_COMMAND
-from telegram_bot.constants import AdminButtonNames
+from telegram_bot.constants import AdminConsts
 from telegram_bot.constants import ButtonNames
 from telegram_bot.constants import Messages
 from telegram_bot.db import setup_db
@@ -120,7 +120,7 @@ async def story_saving(
     await state.finish()
 
 
-@dp.message_handler(Text(AdminButtonNames.GET_STORIES), is_admin=True)
+@dp.message_handler(Text(AdminConsts.GET_STORIES), is_admin=True)
 async def get_user_stories(message: types.Message, state: FSMContext):
     """Получение админом историй."""
 
@@ -129,7 +129,7 @@ async def get_user_stories(message: types.Message, state: FSMContext):
     ).limit(ADMIN_OBJS_COUNT_SETTING)
 
     if not user_stories:
-        raise ApplicationLogicException(AdminButtonNames.STORIES_IS_EMPTY)
+        raise ApplicationLogicException(AdminConsts.STORIES_IS_EMPTY)
 
     for story in user_stories:
         await message.answer(
@@ -137,16 +137,18 @@ async def get_user_stories(message: types.Message, state: FSMContext):
 
 
 @dp.callback_query_handler(
-    lambda c: AdminButtonNames.DELETE_STORY_CODE in c.data)
+    lambda c: AdminConsts.DELETE_STORY_CODE in c.data)
 async def delete_story(callback_query: types.CallbackQuery):
     """Удаление истории вместе с сообщением."""
     story_id = get_obj_id_from_callback_data(callback_query.data)
     await Story.filter(id=story_id).delete()
-    await callback_query.message.delete()
+
+    if callback_query.message:
+        await callback_query.message.delete()
 
 
 @dp.callback_query_handler(
-    lambda c: AdminButtonNames.APPROVE_STORY_CODE in c.data)
+    lambda c: AdminConsts.APPROVE_STORY_CODE in c.data)
 async def process_story_approve(callback_query: types.CallbackQuery):
     """Авто-пересылка истории в канал"""
     story_id = get_obj_id_from_callback_data(callback_query.data)
@@ -154,7 +156,7 @@ async def process_story_approve(callback_query: types.CallbackQuery):
 
 
 @dp.callback_query_handler(
-    lambda c: AdminButtonNames.NEED_TO_EDIT_STORY_CODE in c.data)
+    lambda c: AdminConsts.NEED_TO_EDIT_STORY_CODE in c.data)
 async def need_to_edit_story(callback_query: types.CallbackQuery,
                              state: FSMContext):
     """Отправка истории на редактирование вместе с сообщением от админа."""
@@ -162,7 +164,7 @@ async def need_to_edit_story(callback_query: types.CallbackQuery,
     await state.set_data({'user_story_id': story_id})
 
     await callback_query.message.answer(
-        AdminButtonNames.NEED_TO_EDIT_TO_ADMIN, reply_markup=RETURN_KEYBOARD)
+        AdminConsts.NEED_TO_EDIT_TO_ADMIN, reply_markup=RETURN_KEYBOARD)
 
     await ProjectStates.need_to_edit_story.set()
 
@@ -183,23 +185,23 @@ async def need_to_edit_story_send_msg(
 
         await bot.send_message(
             story.user_id,
-            f'{AdminButtonNames.ADMIN_ANSWER}\n{Messages.STORY_NEED_TO_EDIT}',
+            f'{AdminConsts.ADMIN_ANSWER}\n{Messages.STORY_NEED_TO_EDIT}',
             parse_mode="Markdown"
         )
         await bot.send_message(story.user_id, story.text)
         await bot.send_message(
-            story.user_id, f'{AdminButtonNames.ADMIN_ANSWER}\n{message.text}',
+            story.user_id, f'{AdminConsts.ADMIN_ANSWER}\n{message.text}',
             parse_mode="Markdown"
         )
         await answer_with_actions_keyboard(
-            message, AdminButtonNames.ADMIN_MSG_SENDED)
+            message, AdminConsts.ADMIN_MSG_SENDED)
     else:
         raise ApplicationLogicException('История не найдена!')
     await state.finish()
 
 
 @dp.message_handler(Text(
-    AdminButtonNames.GET_PERSON_INFO), is_admin=True)
+    AdminConsts.GET_PERSON_INFO), is_admin=True)
 async def get_user_info_forms(message: types.Message, state: FSMContext):
     """Получение админом анкет."""
 
@@ -208,7 +210,7 @@ async def get_user_info_forms(message: types.Message, state: FSMContext):
     ).limit(ADMIN_OBJS_COUNT_SETTING)
 
     if not persons_information:
-        raise ApplicationLogicException(AdminButtonNames.PERSON_INFOS_IS_EMPTY)
+        raise ApplicationLogicException(AdminConsts.PERSON_INFOS_IS_EMPTY)
 
     for person_info in persons_information:
         await answer(
@@ -218,16 +220,18 @@ async def get_user_info_forms(message: types.Message, state: FSMContext):
 
 
 @dp.callback_query_handler(
-    lambda c: AdminButtonNames.DELETE_PERSON_INFO_CODE in c.data)
+    lambda c: AdminConsts.DELETE_PERSON_INFO_CODE in c.data)
 async def delete_person_info(callback_query: types.CallbackQuery):
     """Удаление анкеты вместе с сообщением."""
     info_id = get_obj_id_from_callback_data(callback_query.data)
     await PersonInformation.filter(id=info_id).delete()
-    await callback_query.message.delete()
+
+    if callback_query.message:
+        await callback_query.message.delete()
 
 
 @dp.callback_query_handler(
-    lambda c: AdminButtonNames.APPROVE_PERSON_INFO_CODE in c.data)
+    lambda c: AdminConsts.APPROVE_PERSON_INFO_CODE in c.data)
 async def process_person_info_approve(callback_query: types.CallbackQuery):
     """Авто-пересылка анкеты в канал"""
     person_info_id = get_obj_id_from_callback_data(callback_query.data)
@@ -236,7 +240,7 @@ async def process_person_info_approve(callback_query: types.CallbackQuery):
 
 
 @dp.callback_query_handler(
-    lambda c: AdminButtonNames.NEED_TO_EDIT_PERSON_INFO_CODE in c.data)
+    lambda c: AdminConsts.NEED_TO_EDIT_PERSON_INFO_CODE in c.data)
 async def need_to_edit_person_info(callback_query: types.CallbackQuery,
                              state: FSMContext):
     """Отправка анкеты на редактирование вместе с сообщением от админа."""
@@ -244,7 +248,7 @@ async def need_to_edit_person_info(callback_query: types.CallbackQuery,
     await state.set_data({'user_person_info_id': person_info_id})
 
     await callback_query.message.answer(
-        AdminButtonNames.NEED_TO_EDIT_TO_ADMIN, reply_markup=RETURN_KEYBOARD)
+        AdminConsts.NEED_TO_EDIT_TO_ADMIN, reply_markup=RETURN_KEYBOARD)
 
     await ProjectStates.need_to_edit_person_info.set()
 
@@ -266,25 +270,25 @@ async def need_to_edit_person_info_send_msg(
 
         await bot.send_message(
             person_info.user_id,
-            f'{AdminButtonNames.ADMIN_ANSWER}\n{Messages.INFO_NEED_TO_EDIT}',
+            f'{AdminConsts.ADMIN_ANSWER}\n{Messages.INFO_NEED_TO_EDIT}',
             parse_mode="Markdown"
         )
         await bot.send_photo(
             person_info.user_id, person_info.image_file_id, person_info.text)
         await bot.send_message(
             person_info.user_id,
-            f'{AdminButtonNames.ADMIN_ANSWER}\n{message.text}',
+            f'{AdminConsts.ADMIN_ANSWER}\n{message.text}',
             parse_mode="Markdown"
         )
         await answer_with_actions_keyboard(
-            message, AdminButtonNames.ADMIN_MSG_SENDED)
+            message, AdminConsts.ADMIN_MSG_SENDED)
     else:
         raise ApplicationLogicException('Анкета не найдена!')
     await state.finish()
 
 
-@dp.message_handler(Text(AdminButtonNames.SEND_SENTRY_ERROR_CMD))
-async def send_test_setnry_error(message: types.Message):
+@dp.message_handler(Text(AdminConsts.SEND_SENTRY_ERROR_CMD))
+async def send_test_sentry_error(message: types.Message):
     """Обработчик отправки тестового сообщения в Sentry."""
     capture_message('Тестовое сообщение в Sentry')
     await answer_with_actions_keyboard(
