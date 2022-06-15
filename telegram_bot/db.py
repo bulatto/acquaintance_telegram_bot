@@ -11,6 +11,8 @@ db = Tortoise()
 async def on_startup(dispatcher: Dispatcher):
     await db.init(config=settings.TORTOISE_ORM)
 
+    from telegram_bot import signals
+
 
 async def on_shutdown(dispatcher: Dispatcher):
     await db.close_connections()

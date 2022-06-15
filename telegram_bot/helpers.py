@@ -12,6 +12,7 @@ from telegram_bot.exceptions import ApplicationLogicException
 from telegram_bot.exceptions import ImageProcessingException
 from telegram_bot.filters import is_admin_message
 from telegram_bot.keyboards import get_actions_kb_params
+from telegram_bot.models import AdminUserId
 from telegram_bot.models import PersonInformation
 from telegram_bot.models import Story
 from telegram_bot.settings import CHANNEL_USERNAME
@@ -165,6 +166,14 @@ async def cancel_action(message, state=None):
 
 async def answer_with_actions_keyboard(message, text):
     """Обычный ответ на сообщение с выдачей клавиатуры действий"""
+
+    # Пробуем обновить user_id для админов. user_id необходим для оповещения.
+    if is_admin_message(message):
+        await AdminUserId.get_or_create(
+            username=message.from_user.username,
+            defaults={'user_id': message.from_user.id}
+        )
+
     await message.answer(
         text,
         **get_actions_kb_params(is_admin_message(message))
