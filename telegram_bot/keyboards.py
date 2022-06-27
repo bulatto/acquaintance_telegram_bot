@@ -3,12 +3,14 @@ from aiogram.types import InlineKeyboardMarkup
 from aiogram.types import ReplyKeyboardMarkup
 from telegram_bot.constants import AdminConsts
 from telegram_bot.constants import ButtonNames as BN
+from telegram_bot.constants import DialogConsts
 
 
 def get_actions_keyboard(is_admin=False):
     """Клавиатура с выбором возможных действий"""
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    for button_name in [BN.SEND_INFORMATION_FORM, BN.SEND_STORY]:
+    for button_name in [BN.SEND_INFORMATION_FORM, BN.SEND_STORY,
+                        BN.START_ANONYMOUS_DIALOG]:
         kb.add(button_name)
 
     if is_admin:
@@ -27,6 +29,14 @@ actions_kb_params = dict(reply_markup=get_actions_keyboard())
 # Клавиатура с единственной кнопкой "Вернуться"
 RETURN_KEYBOARD = ReplyKeyboardMarkup(
     resize_keyboard=True).add(BN.RETURN)
+
+# Клавиатура с единственной кнопкой "Остановить поиск собеседника"
+STOP_DIALOG_SEARCH_KEYBOARD = ReplyKeyboardMarkup(
+    resize_keyboard=True).add(DialogConsts.SEARCH_STOP_BUTTON)
+
+# Клавиатура с единственной кнопкой "Закончить диалог"
+CANCEL_DIALOG_KEYBOARD = ReplyKeyboardMarkup(
+    resize_keyboard=True).add(DialogConsts.CANCEL_DIALOG_BUTTON)
 
 
 def get_story_keyboard_markup(story_id):

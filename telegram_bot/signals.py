@@ -11,7 +11,7 @@ from tortoise.signals import post_save
 
 
 @post_save(Story)
-async def signal_post_save(
+async def story_post_save(
         sender: Type[Story], instance: Story, created: bool,
         using_db: Optional[BaseDBAsyncClient], update_fields: List[str]
 ) -> None:
@@ -25,7 +25,7 @@ async def signal_post_save(
 
 
 @post_save(PersonInformation)
-async def signal_post_save(
+async def person_info_post_save(
         sender: Type[PersonInformation], instance: PersonInformation,
         created: bool, using_db: Optional[BaseDBAsyncClient],
         update_fields: List[str],

@@ -3,16 +3,19 @@ import uuid
 from datetime import date
 from typing import Optional
 
+from aiogram import Dispatcher
 from aiogram.types import PhotoSize
 from aiogram.utils import exceptions as aiogram_exceptions
 from telegram_bot.constants import START_COMMAND
 from telegram_bot.constants import ButtonNames
+from telegram_bot.constants import DialogConsts
 from telegram_bot.constants import Messages
 from telegram_bot.exceptions import ApplicationLogicException
 from telegram_bot.exceptions import ImageProcessingException
 from telegram_bot.filters import is_admin_message
 from telegram_bot.keyboards import get_actions_kb_params
 from telegram_bot.models import AdminUserId
+from telegram_bot.models import AnonymousDialog
 from telegram_bot.models import PersonInformation
 from telegram_bot.models import Story
 from telegram_bot.settings import CHANNEL_USERNAME
@@ -191,6 +194,47 @@ async def check_return_or_start_cmd(message, state):
         await state.finish()
         await message.answer(Messages.START)
         await answer_with_actions_keyboard(message, Messages.CHOOSE_ACTION)
+        return True
+
+    return False
+
+
+async def is_dialog_finished(message, state, dialog_partner_id):
+    """Завершение диалога одним из пользователей."""
+
+    from telegram_bot.bot import bot
+
+    if (message.text == DialogConsts.CANCEL_DIALOG_BUTTON or
+            message.text == DialogConsts.SEARCH_STOP_BUTTON or
+            message.text == f'/{START_COMMAND}'):
+        await message.answer(DialogConsts.LEFT_DIALOG)
+        await state.finish()
+
+        if message.text == f'/{START_COMMAND}':
+            await message.answer(Messages.START)
+        await answer_with_actions_keyboard(message, Messages.CHOOSE_ACTION)
+
+        # Удаляем пользователя из поиска, если он решил остановить диалог
+        await AnonymousDialog.filter(
+            to_user_id__isnull=True, user_id=message.from_user.id
+        ).delete()
+
+        partner_dialog_state = Dispatcher.get_current().current_state(
+            chat=dialog_partner_id, user=dialog_partner_id)
+        if partner_dialog_state:
+            partner_is_admin = await AdminUserId.filter(
+                user_id=dialog_partner_id).exists()
+
+            if dialog_partner_id:
+                await bot.send_message(
+                    dialog_partner_id, DialogConsts.PARTNER_LEFT_DIALOG
+                )
+                await bot.send_message(
+                    dialog_partner_id, Messages.CHOOSE_ACTION,
+                    **get_actions_kb_params(partner_is_admin)
+                )
+            await partner_dialog_state.finish()
+
         return True
 
     return False
