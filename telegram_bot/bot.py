@@ -13,22 +13,25 @@ from aiogram.types import ContentType
 from aiogram.utils.executor import Executor
 from sentry_sdk import capture_exception
 from sentry_sdk import capture_message
-from telegram_bot.constants import START_COMMAND
+from telegram_bot.constants import START_COMMAND, DialogConsts
 from telegram_bot.constants import AdminConsts
 from telegram_bot.constants import ButtonNames
 from telegram_bot.constants import Messages
 from telegram_bot.db import setup_db
 from telegram_bot.exceptions import ApplicationLogicException
 from telegram_bot.filters import AdminFilter
-from telegram_bot.helpers import PersonInfoToChannelResender
+from telegram_bot.helpers import PersonInfoToChannelResender, \
+    is_dialog_finished
 from telegram_bot.helpers import StoryToChannelResender
 from telegram_bot.helpers import answer_with_actions_keyboard
 from telegram_bot.helpers import check_return_or_start_cmd
 from telegram_bot.helpers import create_person_info_from_message
 from telegram_bot.helpers import get_obj_id_from_callback_data
-from telegram_bot.keyboards import RETURN_KEYBOARD
+from telegram_bot.keyboards import RETURN_KEYBOARD, CANCEL_DIALOG_KEYBOARD, \
+    STOP_DIALOG_SEARCH_KEYBOARD
 from telegram_bot.keyboards import get_person_info_keyboard_markup
 from telegram_bot.keyboards import get_story_keyboard_markup
+from telegram_bot.models import AnonymousDialog
 from telegram_bot.models import PersonInformation
 from telegram_bot.models import Story
 from telegram_bot.settings import ADMIN_OBJS_COUNT_SETTING
@@ -242,7 +245,7 @@ async def process_person_info_approve(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(
     lambda c: AdminConsts.NEED_TO_EDIT_PERSON_INFO_CODE in c.data)
 async def need_to_edit_person_info(callback_query: types.CallbackQuery,
-                             state: FSMContext):
+                                   state: FSMContext):
     """Отправка анкеты на редактирование вместе с сообщением от админа."""
     person_info_id = get_obj_id_from_callback_data(callback_query.data)
     await state.set_data({'user_person_info_id': person_info_id})
@@ -285,6 +288,96 @@ async def need_to_edit_person_info_send_msg(
     else:
         raise ApplicationLogicException('Анкета не найдена!')
     await state.finish()
+
+
+############### Dialog part ###############
+
+#todo добавить модель (и возможно модуль) статистики
+
+@dp.message_handler(Text(ButtonNames.START_ANONYMOUS_DIALOG))
+async def start_anon_dialog_search(message: types.Message, state: FSMContext):
+    """Обработчик нажатия на кнопку поиск собеседника для диалога."""
+    current_user_id = message.from_user.id
+
+    dialog_partner = await AnonymousDialog.filter(
+        to_user_id__isnull=True).exclude(user_id=current_user_id).first()
+    dialog_partner_id = getattr(dialog_partner, 'user_id', None)
+
+    if dialog_partner_id:
+        await state.finish()
+
+        partner_dialog_state = Dispatcher.get_current().current_state(
+            chat=dialog_partner_id, user=dialog_partner_id)
+        if partner_dialog_state:
+            await partner_dialog_state.finish()
+
+        await ProjectStates.anon_dialog_state.set()
+        await ProjectStates.anon_dialog_state.set(
+            chat_id=dialog_partner_id,
+            user_id=dialog_partner_id,
+            # Для юзера, которому устанавливаем состояние диалога, так же
+            # прокидываем id пользователя с которым он общается.
+            data={'dialog_partner_id': current_user_id}
+        )
+
+        await state.set_data({'dialog_partner_id': dialog_partner_id})
+
+        dialog_partner.to_user_id = current_user_id
+        await dialog_partner.save()
+
+        await message.answer(
+            DialogConsts.PARTNER_FOUNDED, reply_markup=CANCEL_DIALOG_KEYBOARD)
+
+        await bot.send_message(
+            dialog_partner_id, DialogConsts.PARTNER_FOUNDED,
+            reply_markup=CANCEL_DIALOG_KEYBOARD
+        )
+    else:
+        await ProjectStates.search_anon_dialog_state.set()
+        await message.answer(
+            DialogConsts.SEARCH_STARTED_BUTTON,
+            reply_markup=STOP_DIALOG_SEARCH_KEYBOARD, parse_mode="Markdown"
+        )
+
+        current_user_is_searching = await AnonymousDialog.filter(
+            to_user_id__isnull=True,
+            user_id=current_user_id
+        ).exists()
+        if not current_user_is_searching:
+            await AnonymousDialog.create(user_id=current_user_id)
+
+
+@dp.message_handler(state=ProjectStates.search_anon_dialog_state)
+async def dialog_search(
+        message: types.Message, state: FSMContext):
+    """Обработчик сообщений для состояния поиска диалога."""
+    state_data = await state.get_data()
+    dialog_partner_id = state_data.get('dialog_partner_id', None)
+
+    dialog_finished = await is_dialog_finished(
+        message, state, dialog_partner_id)
+    if dialog_finished:
+        return
+    await message.answer(DialogConsts.STILL_SEARCHING)
+
+
+@dp.message_handler(state=ProjectStates.anon_dialog_state)
+async def anon_dialog(
+        message: types.Message, state: FSMContext):
+    """Обработчик пересылки сообщений в диалоге."""
+    state_data = await state.get_data()
+    dialog_partner_id = state_data.get('dialog_partner_id', None)
+
+    dialog_finished = await is_dialog_finished(
+        message, state, dialog_partner_id)
+    if dialog_finished:
+        return
+
+    if dialog_partner_id:
+        await bot.send_message(dialog_partner_id, message.text)
+
+
+############### End dialog part ###############
 
 
 @dp.message_handler(Text(AdminConsts.SEND_SENTRY_ERROR_CMD))

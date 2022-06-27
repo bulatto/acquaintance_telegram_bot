@@ -14,7 +14,7 @@ class CreatedDateModel(Model):
 
 class UpdatedDateModel(Model):
     """Модель для хранения даты и времени обновления объекта."""
-    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
         abstract = True
@@ -68,3 +68,9 @@ class AdminUserId(DateAwareModel):
     id = fields.IntField(pk=True)
     username = fields.CharField(max_length=32)
     user_id = fields.IntField()
+
+
+class AnonymousDialog(DateAwareModel):
+    """Модель для хранения пользователей, ищущих диалог в анонимном чате."""
+    user_id = fields.IntField()
+    to_user_id = fields.IntField(null=True)
