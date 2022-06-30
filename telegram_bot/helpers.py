@@ -191,7 +191,8 @@ async def check_return_or_start_cmd(message, state):
         return True
 
     if message.text == f'/{START_COMMAND}':
-        await state.finish()
+        if state:
+            await state.finish()
         await message.answer(Messages.START)
         await answer_with_actions_keyboard(message, Messages.CHOOSE_ACTION)
         return True

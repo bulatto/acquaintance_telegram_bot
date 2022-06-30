@@ -392,6 +392,8 @@ async def send_test_sentry_error(message: types.Message):
 async def unknown_message_handler(message: types.Message):
     """Обработчик неизвестных сообщений."""
     await message.answer(Messages.UNKNOWN_MESSAGE)
+    state = dp.current_state()
+    await check_return_or_start_cmd(message, state)
 
 
 @dp.errors_handler(exception=Exception)
