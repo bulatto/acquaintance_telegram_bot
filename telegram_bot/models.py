@@ -1,6 +1,5 @@
 from tortoise import fields
 from tortoise.models import Model
-
 from telegram_bot.constants import MAX_TELEGRAM_MESSAGE_LENGTH
 
 
@@ -14,7 +13,7 @@ class CreatedDateModel(Model):
 
 class UpdatedDateModel(Model):
     """Модель для хранения даты и времени обновления объекта."""
-    updated_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
 
     class Meta:
         abstract = True
@@ -74,3 +73,9 @@ class AnonymousDialog(DateAwareModel):
     """Модель для хранения пользователей, ищущих диалог в анонимном чате."""
     user_id = fields.IntField()
     to_user_id = fields.IntField(null=True)
+
+
+class ClickStats(CreatedDateModel):
+    """Модель для хранения статистики нажатий на кнопки бота."""
+    user_id = fields.IntField()
+    button = fields.IntField()

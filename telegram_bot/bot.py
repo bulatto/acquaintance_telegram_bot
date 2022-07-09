@@ -11,24 +11,27 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import ContentType
 from aiogram.utils.executor import Executor
+from helpers import log_button_click
 from sentry_sdk import capture_exception
 from sentry_sdk import capture_message
-from telegram_bot.constants import START_COMMAND, DialogConsts
+from telegram_bot.constants import START_COMMAND
 from telegram_bot.constants import AdminConsts
-from telegram_bot.constants import ButtonNames
+from telegram_bot.constants import ButtonNames as BN
+from telegram_bot.constants import DialogConsts
 from telegram_bot.constants import Messages
 from telegram_bot.db import setup_db
 from telegram_bot.exceptions import ApplicationLogicException
 from telegram_bot.filters import AdminFilter
-from telegram_bot.helpers import PersonInfoToChannelResender, \
-    is_dialog_finished
+from telegram_bot.helpers import PersonInfoToChannelResender
 from telegram_bot.helpers import StoryToChannelResender
 from telegram_bot.helpers import answer_with_actions_keyboard
 from telegram_bot.helpers import check_return_or_start_cmd
 from telegram_bot.helpers import create_person_info_from_message
 from telegram_bot.helpers import get_obj_id_from_callback_data
-from telegram_bot.keyboards import RETURN_KEYBOARD, CANCEL_DIALOG_KEYBOARD, \
-    STOP_DIALOG_SEARCH_KEYBOARD
+from telegram_bot.helpers import is_dialog_finished
+from telegram_bot.keyboards import CANCEL_DIALOG_KEYBOARD
+from telegram_bot.keyboards import RETURN_KEYBOARD
+from telegram_bot.keyboards import STOP_DIALOG_SEARCH_KEYBOARD
 from telegram_bot.keyboards import get_person_info_keyboard_markup
 from telegram_bot.keyboards import get_story_keyboard_markup
 from telegram_bot.models import AnonymousDialog
@@ -67,13 +70,15 @@ async def answer(message, text, photo_file_id=None, **kwargs):
 
 
 @dp.message_handler(commands=[START_COMMAND])
+@log_button_click
 async def process_start_command(message: types.Message):
     """Выдает стартовое сообщение."""
     await message.answer(Messages.START)
     await answer_with_actions_keyboard(message, Messages.CHOOSE_ACTION)
 
 
-@dp.message_handler(Text(ButtonNames.SEND_INFORMATION_FORM))
+@dp.message_handler(Text(BN.values[BN.SEND_INFORMATION_FORM]))
+@log_button_click
 async def send_information_form(message: types.Message):
     """Обработчик нажатия на кнопку отправки анкеты сообщений."""
     await message.answer(
@@ -102,7 +107,8 @@ async def send_information_form_saving(
     await state.finish()
 
 
-@dp.message_handler(Text(ButtonNames.SEND_STORY))
+@dp.message_handler(Text(BN.values[BN.SEND_STORY]))
+@log_button_click
 async def send_story(message: types.Message):
     """Обработчик нажатия на кнопку отправки интересной истории."""
     await message.answer(Messages.SEND_STORY, reply_markup=RETURN_KEYBOARD)
@@ -292,9 +298,8 @@ async def need_to_edit_person_info_send_msg(
 
 ############### Dialog part ###############
 
-#todo добавить модель (и возможно модуль) статистики
-
-@dp.message_handler(Text(ButtonNames.START_ANONYMOUS_DIALOG))
+@dp.message_handler(Text(BN.values[BN.START_ANONYMOUS_DIALOG]))
+@log_button_click
 async def start_anon_dialog_search(message: types.Message, state: FSMContext):
     """Обработчик нажатия на кнопку поиск собеседника для диалога."""
     current_user_id = message.from_user.id

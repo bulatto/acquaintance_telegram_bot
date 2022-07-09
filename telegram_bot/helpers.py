@@ -7,7 +7,7 @@ from aiogram import Dispatcher
 from aiogram.types import PhotoSize
 from aiogram.utils import exceptions as aiogram_exceptions
 from telegram_bot.constants import START_COMMAND
-from telegram_bot.constants import ButtonNames
+from telegram_bot.constants import ButtonNames as BN
 from telegram_bot.constants import DialogConsts
 from telegram_bot.constants import Messages
 from telegram_bot.exceptions import ApplicationLogicException
@@ -16,12 +16,47 @@ from telegram_bot.filters import is_admin_message
 from telegram_bot.keyboards import get_actions_kb_params
 from telegram_bot.models import AdminUserId
 from telegram_bot.models import AnonymousDialog
+from telegram_bot.models import ClickStats
 from telegram_bot.models import PersonInformation
 from telegram_bot.models import Story
 from telegram_bot.settings import CHANNEL_USERNAME
 from telegram_bot.settings import MEDIA_DIR
 from telegram_bot.validators import PersonInfoValidator
 from tortoise.transactions import in_transaction
+
+
+def log_button_click(func):
+    """
+    Декоратор для логирования статистики нажатий пользователями на
+    основные кнопки бота.
+    """
+
+    async def inner(*args, **kwargs):
+        # Есть случаи когда функция обработчик не принимает параметр "state",
+        # но иногда она принимает его как позиционный аргумент,
+        # а иногда как именованный.
+        if 'state' in func.__code__.co_varnames and kwargs.get('state'):
+            result = await func(*args, kwargs['state'])
+        else:
+            result = await func(*args)
+
+        try:
+            user_id = args[0].from_user.id
+            button_name = args[0].text
+
+            buttons_dict = dict(map(reversed, BN.values.items()))
+            buttons_dict.update({f'/{START_COMMAND}': 0})
+
+            await ClickStats.create(
+                user_id=user_id, button=buttons_dict.get(button_name, -1)
+            )
+        except Exception:
+            # Пока на всякий случай скрываем все ошибки тут
+            pass
+
+        return result
+
+    return inner
 
 
 def generate_file_name(suffix):
@@ -186,7 +221,7 @@ async def answer_with_actions_keyboard(message, text):
 async def check_return_or_start_cmd(message, state):
     """Проверка введенной команды для ключевых слов "Вернуться" и "/start"."""
 
-    if message.text == ButtonNames.RETURN:
+    if message.text == BN.values[BN.RETURN]:
         await cancel_action(message, state)
         return True
 
@@ -200,13 +235,14 @@ async def check_return_or_start_cmd(message, state):
     return False
 
 
+@log_button_click
 async def is_dialog_finished(message, state, dialog_partner_id):
     """Завершение диалога одним из пользователей."""
 
     from telegram_bot.bot import bot
 
     if (message.text == DialogConsts.CANCEL_DIALOG_BUTTON or
-            message.text == DialogConsts.SEARCH_STOP_BUTTON or
+            message.text == BN.values[BN.SEARCH_STOP_BUTTON] or
             message.text == f'/{START_COMMAND}'):
         await message.answer(DialogConsts.LEFT_DIALOG)
         await state.finish()
