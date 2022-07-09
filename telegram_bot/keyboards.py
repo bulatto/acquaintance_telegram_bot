@@ -9,8 +9,10 @@ from telegram_bot.constants import DialogConsts
 def get_actions_keyboard(is_admin=False):
     """Клавиатура с выбором возможных действий"""
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    for button_name in [BN.SEND_INFORMATION_FORM, BN.SEND_STORY,
-                        BN.START_ANONYMOUS_DIALOG]:
+    for button_name in [
+        BN.values[BN.SEND_INFORMATION_FORM], BN.values[BN.SEND_STORY],
+        BN.values[BN.START_ANONYMOUS_DIALOG]
+    ]:
         kb.add(button_name)
 
     if is_admin:
@@ -28,11 +30,11 @@ def get_actions_kb_params(is_admin):
 actions_kb_params = dict(reply_markup=get_actions_keyboard())
 # Клавиатура с единственной кнопкой "Вернуться"
 RETURN_KEYBOARD = ReplyKeyboardMarkup(
-    resize_keyboard=True).add(BN.RETURN)
+    resize_keyboard=True).add(BN.values[BN.RETURN])
 
 # Клавиатура с единственной кнопкой "Остановить поиск собеседника"
 STOP_DIALOG_SEARCH_KEYBOARD = ReplyKeyboardMarkup(
-    resize_keyboard=True).add(DialogConsts.SEARCH_STOP_BUTTON)
+    resize_keyboard=True).add(BN.values[BN.SEARCH_STOP_BUTTON])
 
 # Клавиатура с единственной кнопкой "Закончить диалог"
 CANCEL_DIALOG_KEYBOARD = ReplyKeyboardMarkup(
