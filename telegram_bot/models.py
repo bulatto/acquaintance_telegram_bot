@@ -33,7 +33,7 @@ class Story(CreatedDateModel):
     # Опубликована ли история
     is_published = fields.BooleanField(default=False)
     # Пользователь отправивший историю
-    user_id = fields.IntField()
+    user_id = fields.BigIntField()
 
 
 class StoryView(CreatedDateModel):
@@ -56,7 +56,7 @@ class PersonInformation(DateAwareModel):
     # Опубликована ли анкета
     is_published = fields.BooleanField(default=False)
     # Пользователь отправивший анкету
-    user_id = fields.IntField()
+    user_id = fields.BigIntField()
 
 
 class AdminUserId(DateAwareModel):
@@ -66,16 +66,16 @@ class AdminUserId(DateAwareModel):
     """
     id = fields.IntField(pk=True)
     username = fields.CharField(max_length=32)
-    user_id = fields.IntField()
+    user_id = fields.BigIntField()
 
 
 class AnonymousDialog(DateAwareModel):
     """Модель для хранения пользователей, ищущих диалог в анонимном чате."""
-    user_id = fields.IntField()
-    to_user_id = fields.IntField(null=True)
+    user_id = fields.BigIntField()
+    to_user_id = fields.BigIntField(null=True)
 
 
 class ClickStats(CreatedDateModel):
     """Модель для хранения статистики нажатий на кнопки бота."""
-    user_id = fields.IntField()
+    user_id = fields.BigIntField()
     button = fields.IntField()
